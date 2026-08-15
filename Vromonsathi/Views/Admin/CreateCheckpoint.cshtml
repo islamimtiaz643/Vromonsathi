@@ -1,0 +1,26 @@
+﻿@model Checkpoint
+@{
+    ViewData["Title"] = "Add Checkpoint"; var dest = ViewBag.Destination as Destination;
+}
+
+<h2 class="mb-4">Add Checkpoint — @dest.Name</h2>
+<form asp-action="CreateCheckpoint" method="post">
+    <input type="hidden" asp-for="DestinationId" />
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+    <div class="row g-3">
+        <div class="col-md-4">
+            <label class="form-label">Type</label>
+            <select asp-for="Type" class="form-select">
+                <option value="Army">Army</option>
+                <option value="BGB">BGB</option>
+                <option value="Police">Police</option>
+            </select>
+        </div>
+        <div class="col-md-4"><label class="form-label">Name</label><input asp-for="Name" class="form-control" /></div>
+        <div class="col-md-2"><label class="form-label">Order</label><input asp-for="SequenceOrder" class="form-control" /></div>
+        <div class="col-md-2"><label class="form-label">Distance (km)</label><input asp-for="DistanceFromStartKm" class="form-control" /></div>
+        <div class="col-12"><label class="form-label">Notes</label><textarea asp-for="Notes" class="form-control"></textarea></div>
+    </div>
+    <button type="submit" class="btn btn-success mt-3">Save</button>
+    <a asp-action="Checkpoints" asp-route-destinationId="@dest.Id" class="btn btn-secondary mt-3">Cancel</a>
+</form>

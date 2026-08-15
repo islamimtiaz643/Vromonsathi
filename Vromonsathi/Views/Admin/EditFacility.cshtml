@@ -1,0 +1,38 @@
+﻿@model Facility
+@{
+    ViewData["Title"] = "Edit Facility";
+}
+
+<h2 class="mb-4">Edit Facility</h2>
+<form asp-action="EditFacility" method="post">
+    <input type="hidden" asp-for="Id" />
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+    <div class="row g-3">
+        <div class="col-md-4">
+            <label class="form-label">Key</label>
+            <select asp-for="Key" class="form-select">
+                <option value="Hotel">Hotel</option>
+                <option value="Guide">Guide</option>
+                <option value="Transport">Transport</option>
+                <option value="Meals">Meals</option>
+                <option value="Sim">Sim</option>
+                <option value="Insurance">Insurance</option>
+            </select>
+        </div>
+        <div class="col-md-4"><label class="form-label">Name</label><input asp-for="NameEn" class="form-control" /></div>
+        <div class="col-md-2"><label class="form-label">Default Price</label><input asp-for="DefaultPrice" class="form-control" /></div>
+        <div class="col-md-2">
+            <label class="form-label">Unit</label>
+            <select asp-for="Unit" class="form-select">
+                <option value="PerNight">PerNight</option>
+                <option value="PerDay">PerDay</option>
+                <option value="PerPerson">PerPerson</option>
+                <option value="PerDayPerPerson">PerDayPerPerson</option>
+                <option value="Flat">Flat</option>
+            </select>
+        </div>
+        <div class="col-12"><label class="form-label">Description</label><textarea asp-for="Description" class="form-control"></textarea></div>
+    </div>
+    <button type="submit" class="btn btn-success mt-3">Update</button>
+    <a asp-action="Facilities" class="btn btn-secondary mt-3">Cancel</a>
+</form>

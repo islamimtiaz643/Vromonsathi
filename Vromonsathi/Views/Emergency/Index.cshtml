@@ -1,0 +1,62 @@
+﻿@model List<EmergencyContact>
+@{
+    ViewData["Title"] = "Emergency Aid";
+}
+
+<section class="aid-section">
+    <div class="wrap">
+        <div class="section-head">
+            <div>
+                <span class="tag">Aid &amp; emergency</span>
+                <h2>Help stays one tap away</h2>
+                <p>Live location shares with the nearest post the moment SOS is pressed.</p>
+            </div>
+        </div>
+
+        <div class="aid-grid">
+            <div class="sos-card">
+                <h3>SOS / Emergency alert</h3>
+                <p>Sends your live GPS location to the tourist police and the nearest checkpoint on your route.</p>
+                <button class="pulse-btn" id="sosBtn">SOS</button>
+                <p id="sosResult" class="mono" style="margin-top:14px; font-size:12.5px; opacity:0.9;"></p>
+            </div>
+
+            <div class="contact-list">
+                @foreach (var c in Model)
+                {
+                    <div class="contact-row">
+                        <div><div class="name">@c.Name</div><div class="role">@c.Type</div></div>
+                        <div class="num">@c.Phone</div>
+                    </div>
+                }
+                @if (!Model.Any())
+                {
+                    <p style="opacity:0.7;">No emergency contacts configured yet.</p>
+                }
+            </div>
+        </div>
+    </div>
+</section>
+
+@section Scripts {
+    <script>
+        document.getElementById('sosBtn').addEventListener('click', () => {
+            const resultEl = document.getElementById('sosResult');
+            resultEl.textContent = 'Sending location…';
+            const send = async (lat, lng) => {
+                const res = await fetch('/Emergency/Sos', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ destinationId: 0, latitude: lat, longitude: lng })
+                });
+                const json = await res.json();
+                resultEl.textContent = `Routed to ${json.routedTo} · ${json.phone}`;
+            };
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(pos => send(pos.coords.latitude, pos.coords.longitude), () => send(0, 0));
+            } else {
+                send(0, 0);
+            }
+        });
+    </script>
+}

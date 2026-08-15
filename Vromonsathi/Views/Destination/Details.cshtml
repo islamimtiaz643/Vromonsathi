@@ -1,0 +1,150 @@
+﻿@model DestinationDetailsViewModel
+@{
+    ViewData["Title"] = Model.Destination.Name;
+    var d = Model.Destination;
+}
+
+<section>
+    <div class="wrap">
+        <div class="eyebrow">@d.Division</div>
+        <h1 style="font-size:clamp(28px,4vw,44px); color:var(--forest); margin-bottom:14px;">
+            @d.Name @if (!string.IsNullOrEmpty(d.NameBn)) {
+            <span class="bn" style="font-size:0.5em; color:var(--river);">@d.NameBn</span>
+        }
+    </h1>
+    <p style="max-width:580px; font-size:15px; opacity:0.85; margin-bottom:24px;">@d.Description</p>
+
+    <div class="dest-meta" style="max-width:460px; margin-bottom:36px;">
+        <div><span class="k">District</span><span class="v">@d.District</span></div>
+        <div><span class="k">Entry fee</span><span class="v">৳@d.EntryFee</span></div>
+        <div><span class="k">Best time to visit</span><span class="v">@d.BestTimeToVisit</span></div>
+        @if (!string.IsNullOrEmpty(d.NearestViewpointName))
+        {
+            <div><span class="k">Nearest viewpoint</span><span class="v">@d.NearestViewpointName (@d.NearestViewpointDistanceKm km)</span></div>
+        }
+        <div><span class="k">Convoy escort required</span><span class="v">@(d.RequiresConvoyEscort ? "Yes" : "No")</span></div>
+    </div>
+
+    @if (d.Checkpoints.Any())
+    {
+        <div class="section-head" style="margin-bottom:14px;">
+            <div><span class="tag">Route checkpoints</span><h2>Every post on the way</h2></div>
+        </div>
+        <div class="table-wrap" style="margin-bottom:40px;">
+            <table>
+                <thead><tr><th>#</th><th>Type</th><th>Name</th><th class="num">Distance</th><th>Notes</th></tr></thead>
+                <tbody>
+                    @foreach (var c in d.Checkpoints.OrderBy(c => c.SequenceOrder))
+                    {
+                        <tr><td>@c.SequenceOrder</td><td>@c.Type</td><td>@c.Name</td><td class="num">@c.DistanceFromStartKm km</td><td>@c.Notes</td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+
+    @if (Model.SampleEstimate != null)
+    {
+        <div class="section-head" style="margin-bottom:14px;">
+            <div><span class="tag">Sample estimate</span><h2>4 travelers, 3 days</h2></div>
+        </div>
+        <div class="estimator-result" style="border-radius:16px; max-width:420px; margin-bottom:40px;">
+            <span class="sub">Estimated total budget</span>
+            <div class="total-figure"><sup>৳</sup>@Model.SampleEstimate.TotalCost.ToString("N0")</div>
+            <div class="per-person">৳ @Model.SampleEstimate.CostPerPerson.ToString("N0") per person</div>
+            <div class="breakdown">
+                @foreach (var line in Model.SampleEstimate.Breakdown)
+                {
+                    <div class="breakdown-row"><span>@line.Label</span><span>৳ @line.Amount.ToString("N0")</span></div>
+                }
+            </div>
+        </div>
+    }
+
+    @if (Model.GroupCosting.Any())
+    {
+        <div class="section-head" style="margin-bottom:14px;">
+            <div><span class="tag">Group costing</span><h2>Cost per person, by group size</h2></div>
+        </div>
+        <div class="table-wrap" style="margin-bottom:40px;">
+            <table>
+                <thead><tr><th>Group size</th><th class="num">Shared cost</th><th class="num">Per-person fixed</th><th class="num">Total budget</th><th class="num">Cost per person</th></tr></thead>
+                <tbody>
+                    @foreach (var row in Model.GroupCosting)
+                    {
+                        <tr class="@(row.GroupSize == 4 ? "highlight" : "")">
+                            <td>@row.GroupSize travelers</td>
+                            <td class="num">৳ @row.SharedCost.ToString("N0")</td>
+                            <td class="num">৳ @row.PerPersonFixed.ToString("N0")</td>
+                            <td class="num">৳ @row.TotalBudget.ToString("N0")</td>
+                            <td class="num">৳ @row.CostPerPerson.ToString("N0")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+
+    <div class="section-head" style="margin-bottom:14px;">
+        <div><span class="tag">Book directly</span><h2>Vendor listings for this destination</h2></div>
+    </div>
+    <div class="dest-grid" style="margin-bottom:48px;">
+        @foreach (var l in Model.Listings)
+        {
+            <div class="fac-card">
+                <h4>@l.Title <span class="badge badge-confirmed">@l.Category</span></h4>
+                <p style="margin:6px 0;">by @l.VendorProfile.BusinessName</p>
+                <p class="mono" style="font-weight:600; color:var(--forest);">৳@l.Price</p>
+                @if (Context.Session.GetString("Role") == "Tourist")
+                {
+                    <a asp-controller="Tourist" asp-action="BookListing" asp-route-id="@l.Id" class="btn btn-primary" style="margin-top:8px;">Book Now</a>
+                }
+            </div>
+        }
+        @if (!Model.Listings.Any())
+        {
+            <p style="opacity:0.7;">No vendor listings for this destination yet.</p>
+        }
+    </div>
+
+    <div class="section-head" style="margin-bottom:14px;">
+        <div><span class="tag">Reviews</span><h2>What travelers say</h2></div>
+    </div>
+    @foreach (var r in d.Reviews)
+    {
+        <div style="border-bottom:1px solid var(--line); padding:10px 0;">
+            <strong>@r.TouristUser.FullName</strong> — @r.Rating/5
+            <p style="margin:0;">@r.Comment</p>
+        </div>
+    }
+    @if (!d.Reviews.Any())
+    {
+        <p style="opacity:0.7;">No reviews yet.</p>
+    }
+
+    @if (Context.Session.GetString("Role") == "Tourist")
+    {
+        <form asp-action="AddReview" asp-controller="Destination" method="post" style="margin-top:20px; max-width:420px;">
+            <input type="hidden" name="destinationId" value="@d.Id" />
+            <div class="field">
+                <label>Rating</label>
+                <select name="rating" style="max-width:150px;">
+                    <option value="5">5</option>
+                    <option value="4">4</option>
+                    <option value="3">3</option>
+                    <option value="2">2</option>
+                    <option value="1">1</option>
+                </select>
+            </div>
+            <div class="field">
+                <textarea name="comment" rows="2" placeholder="Write a review..." style="width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:8px;"></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary">Submit Review</button>
+        </form>
+    }
+    else if (Context.Session.GetInt32("UserId") == null)
+    {
+        <p style="margin-top:16px;"><a asp-controller="Account" asp-action="Login">Login</a> as a tourist to leave a review.</p>
+    }
+</div>
+</section>

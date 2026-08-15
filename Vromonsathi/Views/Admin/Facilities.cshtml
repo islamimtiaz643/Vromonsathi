@@ -1,0 +1,29 @@
+﻿@model List<Facility>
+@{
+    ViewData["Title"] = "Facilities";
+}
+
+<div class="d-flex justify-content-between mb-3">
+    <h2>Facilities</h2>
+    <a asp-action="CreateFacility" class="btn btn-success">+ Add Facility</a>
+</div>
+<div class="table-responsive">
+    <table class="table table-striped align-middle">
+        <thead><tr><th>Key</th><th>Name</th><th>Default Price</th><th>Unit</th><th>Action</th></tr></thead>
+        <tbody>
+            @foreach (var f in Model)
+            {
+                <tr>
+                    <td>@f.Key</td>
+                    <td>@f.NameEn</td>
+                    <td>৳@f.DefaultPrice</td>
+                    <td>@f.Unit</td>
+                    <td>
+                        <a asp-action="EditFacility" asp-route-id="@f.Id" class="btn btn-sm btn-outline-primary">Edit</a>
+                        <a asp-action="DeleteFacility" asp-route-id="@f.Id" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete?');">Delete</a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

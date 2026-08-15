@@ -1,0 +1,46 @@
+﻿@model List<Booking>
+@{
+    ViewData["Title"] = "My Dashboard";
+}
+
+<div class="wrap" style="padding:40px 28px;">
+    <span class="tag">Traveler panel</span>
+    <h2 style="margin-bottom:24px;">My Dashboard</h2>
+
+    <div class="stat-grid">
+        <div class="stat-card"><div class="label">Total Bookings</div><div class="value">@ViewBag.TotalBookings</div></div>
+        <div class="stat-card"><div class="label">Pending</div><div class="value">@ViewBag.PendingBookings</div></div>
+        <div class="stat-card"><div class="label">Confirmed</div><div class="value">@ViewBag.ConfirmedBookings</div></div>
+        <div class="stat-card"><div class="label">Completed</div><div class="value">@ViewBag.CompletedBookings</div></div>
+    </div>
+
+    <div class="action-grid">
+        <a asp-controller="Destination" asp-action="Index" class="btn btn-ghost">Browse Destinations</a>
+        <a asp-action="MyBookings" class="btn btn-ghost">My Bookings</a>
+    </div>
+
+    <div class="section-head" style="margin-top:40px;">
+        <div><span class="tag">Recent activity</span><h2 style="font-size:20px;">Recent Bookings</h2></div>
+    </div>
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>Listing</th><th>Date</th><th class="num">Total</th><th>Status</th></tr></thead>
+            <tbody>
+                @foreach (var b in Model)
+                {
+                    var badgeClass = b.Status switch { "Confirmed" => "badge-confirmed", "Cancelled" => "badge-cancelled", "Completed" => "badge-completed", _ => "badge-pending" };
+                    <tr>
+                        <td>@b.Listing.Title</td>
+                        <td>@b.StartDate.ToString("dd MMM yyyy")</td>
+                        <td class="num">৳@b.TotalPrice</td>
+                        <td><span class="badge @badgeClass">@b.Status</span></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    @if (!Model.Any())
+    {
+        <p style="opacity:0.7; margin-top:16px;">No bookings yet. <a asp-controller="Destination" asp-action="Index">Explore destinations</a> to get started.</p>
+    }
+</div>

@@ -1,0 +1,27 @@
+﻿@{
+    ViewData["Title"] = "Admin Dashboard";
+}
+
+<div class="wrap" style="padding:40px 28px;">
+    <span class="tag">Control panel</span>
+    <h2 style="margin-bottom:24px;">Admin Dashboard</h2>
+
+    <div class="stat-grid">
+        <div class="stat-card"><div class="label">Tourists</div><div class="value">@ViewBag.TotalUsers</div></div>
+        <div class="stat-card"><div class="label">Vendors</div><div class="value">@ViewBag.TotalVendors</div></div>
+        <div class="stat-card"><div class="label">Pending Vendors</div><div class="value">@ViewBag.PendingVendors</div></div>
+        <div class="stat-card"><div class="label">Destinations</div><div class="value">@ViewBag.TotalDestinations</div></div>
+        <div class="stat-card"><div class="label">Bookings</div><div class="value">@ViewBag.TotalBookings</div></div>
+        <div class="stat-card"><div class="label">Revenue</div><div class="value">৳@ViewBag.TotalRevenue</div></div>
+    </div>
+
+    <div class="action-grid">
+        <a asp-action="Facilities" class="btn btn-ghost">Manage Facilities</a>
+        <a asp-action="EmergencyContacts" class="btn btn-ghost">Emergency Contacts</a>
+        <a asp-action="Users" class="btn btn-ghost">Manage Users</a>
+        <a asp-action="Vendors" class="btn btn-ghost">Manage Vendors</a>
+        <a asp-action="Destinations" class="btn btn-ghost">Manage Destinations</a>
+        <a asp-action="Announcements" class="btn btn-ghost">Announcements</a>
+        <a asp-action="Reviews" class="btn btn-ghost">Moderate Reviews</a>
+    </div>
+</div>

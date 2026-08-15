@@ -1,0 +1,23 @@
+﻿@model Destination
+@{
+    ViewData["Title"] = "Add Destination";
+}
+
+<h2 class="mb-4">Add Destination</h2>
+<form asp-action="CreateDestination" method="post">
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+    <div class="row g-3">
+        <div class="col-md-6"><label class="form-label">Name</label><input asp-for="Name" class="form-control" /></div>
+        <div class="col-md-3"><label class="form-label">District</label><input asp-for="District" class="form-control" /></div>
+        <div class="col-md-3"><label class="form-label">Division</label><input asp-for="Division" class="form-control" /></div>
+        <div class="col-md-4"><label class="form-label">Category</label><input asp-for="Category" class="form-control" /></div>
+        <div class="col-md-4"><label class="form-label">Entry Fee</label><input asp-for="EntryFee" class="form-control" /></div>
+        <div class="col-md-4"><label class="form-label">Best Time to Visit</label><input asp-for="BestTimeToVisit" class="form-control" /></div>
+        <div class="col-md-6"><label class="form-label">Image URL</label><input asp-for="ImageUrl" class="form-control" /></div>
+        <div class="col-md-3"><label class="form-label">Latitude</label><input asp-for="Latitude" class="form-control" /></div>
+        <div class="col-md-3"><label class="form-label">Longitude</label><input asp-for="Longitude" class="form-control" /></div>
+        <div class="col-12"><label class="form-label">Description</label><textarea asp-for="Description" class="form-control" rows="4"></textarea></div>
+    </div>
+    <button type="submit" class="btn btn-success mt-3">Save</button>
+    <a asp-action="Destinations" class="btn btn-secondary mt-3">Cancel</a>
+</form>

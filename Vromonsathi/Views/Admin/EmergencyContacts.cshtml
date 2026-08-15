@@ -1,0 +1,26 @@
+﻿@model List<EmergencyContact>
+@{
+    ViewData["Title"] = "Emergency Contacts";
+}
+
+<div class="d-flex justify-content-between mb-3">
+    <h2>Emergency Contacts</h2>
+    <a asp-action="CreateEmergencyContact" class="btn btn-success">+ Add Contact</a>
+</div>
+<div class="table-responsive">
+    <table class="table table-striped align-middle">
+        <thead><tr><th>Type</th><th>Name</th><th>Phone</th><th>Destination</th><th>Action</th></tr></thead>
+        <tbody>
+            @foreach (var c in Model)
+            {
+                <tr>
+                    <td>@c.Type</td>
+                    <td>@c.Name</td>
+                    <td>@c.Phone</td>
+                    <td>@(c.Destination?.Name ?? "General (all destinations)")</td>
+                    <td><a asp-action="DeleteEmergencyContact" asp-route-id="@c.Id" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete?');">Delete</a></td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

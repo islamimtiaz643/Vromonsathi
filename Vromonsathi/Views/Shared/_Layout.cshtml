@@ -1,0 +1,123 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] · Vromonsathi</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+Bengali:wght@500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body>
+
+    <header>
+        <nav>
+            <a class="logo" asp-controller="Home" asp-action="Index" style="text-decoration:none;">
+                <svg class="logo-mark" viewBox="0 0 34 34" fill="none">
+                    <circle cx="17" cy="17" r="16" stroke="#0F3D2E" stroke-width="1.4" />
+                    <path d="M6 20 Q11 14 17 18 T28 14" stroke="#1C6B74" stroke-width="1.4" fill="none" />
+                    <path d="M4 24 Q11 19 17 23 T30 18" stroke="#D9A544" stroke-width="1.2" fill="none" opacity="0.8" />
+                    <circle cx="17" cy="17" r="2.4" fill="#0F3D2E" />
+                </svg>
+                <div class="logo-text">
+                    <span class="bn">ভ্রমণসাথী</span>
+                    <span class="en">Vromonsathi</span>
+                </div>
+            </a>
+            <div class="navlinks">
+                <a href="~/#estimator">Plan &amp; Budget</a>
+                <a asp-controller="Destination" asp-action="Index">Destinations</a>
+                <a href="~/#routes">Routes &amp; Checkpoints</a>
+                <a asp-controller="Facilities" asp-action="Index">Facilities</a>
+                <a asp-controller="Emergency" asp-action="Index">Emergency Aid</a>
+            </div>
+            <div class="nav-cta">
+                @if (Context.Session.GetInt32("UserId") == null)
+                {
+                    <a class="btn btn-ghost" asp-controller="Account" asp-action="Login">Sign in</a>
+                    <a class="btn btn-primary" asp-controller="Account" asp-action="Register">Register</a>
+                }
+                else
+                {
+                    var role = Context.Session.GetString("Role");
+                    @if (role == "Admin")
+                    {
+                        <a class="btn btn-ghost" asp-controller="Admin" asp-action="Dashboard">Admin Dashboard</a>
+                    }
+                    @if (role == "Vendor")
+                    {
+                        <a class="btn btn-ghost" asp-controller="Vendor" asp-action="Dashboard">Vendor Dashboard</a>
+                    }
+                    @if (role == "Tourist")
+                    {
+                        <a class="btn btn-ghost" asp-controller="Tourist" asp-action="Dashboard">My Dashboard</a>
+                    }
+                    <span class="user-chip">Hi, @Context.Session.GetString("FullName")</span>
+                    <a class="btn btn-primary" asp-controller="Account" asp-action="Logout">Logout</a>
+                }
+            </div>
+        </nav>
+    </header>
+
+    @if (TempData["Message"] != null)
+    {
+        <div class="wrap" style="padding-top:18px;">
+            <div class="alert-box">@TempData["Message"]</div>
+        </div>
+    }
+
+    @RenderBody()
+
+    <footer>
+        <div class="wrap">
+            <div class="footer-grid">
+                <div>
+                    <div class="logo" style="margin-bottom:14px;">
+                        <svg class="logo-mark" viewBox="0 0 34 34" fill="none">
+                            <circle cx="17" cy="17" r="16" stroke="#F4F0E4" stroke-width="1.4" />
+                            <path d="M6 20 Q11 14 17 18 T28 14" stroke="#D9A544" stroke-width="1.4" fill="none" />
+                        </svg>
+                        <div class="logo-text">
+                            <span class="bn" style="color:#F4F0E4;">ভ্রমণসাথী</span>
+                            <span class="en" style="color:#D9A544;">Vromonsathi</span>
+                        </div>
+                    </div>
+                    <p style="font-size:13px; opacity:0.7; max-width:280px;">Smart tourism planning for Bangladesh — dynamic budgets, destination plans, bookings, and safety, built for the way people actually travel here.</p>
+                </div>
+                <div>
+                    <h4>Plan</h4>
+                    <div class="flinks">
+                        <a href="~/#estimator">Budget estimator</a>
+                        <a asp-controller="Destination" asp-action="Index">Destinations</a>
+                        <a href="~/#routes">Routes &amp; checkpoints</a>
+                    </div>
+                </div>
+                <div>
+                    <h4>Travelers</h4>
+                    <div class="flinks">
+                        <a asp-controller="Account" asp-action="Register">Sign up</a>
+                        <a asp-controller="Tourist" asp-action="MyBookings">My bookings</a>
+                        <a asp-controller="Emergency" asp-action="Index">Emergency aid</a>
+                    </div>
+                </div>
+                <div>
+                    <h4>Partners</h4>
+                    <div class="flinks">
+                        <a asp-controller="Account" asp-action="Register">List your hotel</a>
+                        <a asp-controller="Account" asp-action="Register">Register as a guide</a>
+                        <a asp-controller="Vendor" asp-action="Dashboard">Vendor dashboard</a>
+                    </div>
+                </div>
+            </div>
+            <div class="foot-bottom">
+                <span>© 2026 Vromonsathi</span>
+                <span><a asp-controller="Home" asp-action="Terms">Terms</a> · <a asp-controller="Home" asp-action="Privacy">Privacy</a> · বাংলা / English</span>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

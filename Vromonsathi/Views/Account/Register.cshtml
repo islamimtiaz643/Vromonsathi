@@ -1,0 +1,53 @@
+﻿@model RegisterViewModel
+@{
+    ViewData["Title"] = "Register";
+}
+
+<div class="auth-wrap" style="max-width:520px;">
+    <span class="tag" style="display:block; margin-bottom:6px;">Join Vromonsathi</span>
+    <h2>Create an Account</h2>
+    <form asp-action="Register" method="post" style="margin-top:20px;">
+        <div asp-validation-summary="ModelOnly" class="text-danger" style="margin-bottom:12px;"></div>
+
+        <div class="field"><label>Full Name</label><input asp-for="FullName" /><span asp-validation-for="FullName" class="text-danger"></span></div>
+        <div class="field"><label>Email</label><input asp-for="Email" /><span asp-validation-for="Email" class="text-danger"></span></div>
+        <div class="field"><label>Phone Number</label><input asp-for="PhoneNumber" /></div>
+        <div class="field"><label>Password</label><input asp-for="Password" /><span asp-validation-for="Password" class="text-danger"></span></div>
+        <div class="field"><label>Confirm Password</label><input asp-for="ConfirmPassword" /><span asp-validation-for="ConfirmPassword" class="text-danger"></span></div>
+
+        <div class="field">
+            <label>Register as</label>
+            <select asp-for="Role" id="roleSelect" onchange="toggleVendorFields()">
+                <option value="Tourist">Tourist</option>
+                <option value="Vendor">Vendor (Hotel / Guide / Transport / Restaurant)</option>
+            </select>
+        </div>
+
+        <div id="vendorFields" style="display:none;">
+            <div class="field"><label>Business Name</label><input asp-for="BusinessName" /></div>
+            <div class="field">
+                <label>Business Type</label>
+                <select asp-for="BusinessType">
+                    <option value="Hotel">Hotel</option>
+                    <option value="TourGuide">Tour Guide</option>
+                    <option value="Transport">Transport</option>
+                    <option value="Restaurant">Restaurant</option>
+                </select>
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="width:100%;">Register</button>
+    </form>
+    <p style="margin-top:16px; font-size:13.5px;">Already have an account? <a asp-action="Login">Login here</a></p>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        function toggleVendorFields() {
+            var role = document.getElementById("roleSelect").value;
+            document.getElementById("vendorFields").style.display = role === "Vendor" ? "block" : "none";
+        }
+        toggleVendorFields();
+    </script>
+}

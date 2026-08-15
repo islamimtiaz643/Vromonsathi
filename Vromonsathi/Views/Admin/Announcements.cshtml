@@ -1,0 +1,25 @@
+﻿@model List<Announcement>
+@{
+    ViewData["Title"] = "Announcements";
+}
+
+<div class="d-flex justify-content-between mb-3">
+    <h2>Announcements</h2>
+    <a asp-action="CreateAnnouncement" class="btn btn-success">+ New Announcement</a>
+</div>
+<div class="table-responsive">
+    <table class="table table-striped align-middle">
+        <thead><tr><th>Title</th><th>Content</th><th>Posted</th><th>Action</th></tr></thead>
+        <tbody>
+            @foreach (var a in Model)
+            {
+                <tr>
+                    <td>@a.Title</td>
+                    <td>@a.Content</td>
+                    <td>@a.CreatedAt.ToString("dd MMM yyyy")</td>
+                    <td><a asp-action="DeleteAnnouncement" asp-route-id="@a.Id" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete?');">Delete</a></td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

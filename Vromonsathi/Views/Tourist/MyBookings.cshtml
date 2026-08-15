@@ -1,0 +1,52 @@
+﻿@model List<Booking>
+@{
+    ViewData["Title"] = "My Bookings";
+}
+
+<h2 class="mb-4">My Bookings</h2>
+<div class="table-responsive">
+    <table class="table table-striped align-middle">
+        <thead><tr><th>Listing</th><th>Vendor</th><th>Date</th><th>People</th><th>Total</th><th>Status</th><th>Action</th></tr></thead>
+        <tbody>
+            @foreach (var b in Model)
+            {
+                <tr>
+                    <td>@b.Listing.Title</td>
+                    <td>@b.Listing.VendorProfile.BusinessName</td>
+                    <td>@b.StartDate.ToString("dd MMM yyyy")</td>
+                    <td>@b.NumberOfPeople</td>
+                    <td>৳@b.TotalPrice</td>
+                    <td><span class="badge bg-@(b.Status == "Confirmed" ? "success" : b.Status == "Cancelled" ? "danger" : b.Status == "Completed" ? "secondary" : "warning")">@b.Status</span></td>
+                    <td>
+                        @if (b.Status == "Pending")
+                        {
+                            <a asp-action="CancelBooking" asp-route-id="@b.Id" class="btn btn-sm btn-outline-danger" onclick="return confirm('Cancel this booking?');">Cancel</a>
+                        }
+                        @if (b.Status == "Completed")
+                        {
+                            <button class="btn btn-sm btn-outline-success" data-bs-toggle="collapse" data-bs-target="#review-@b.Id">Leave Review</button>
+                            <div class="collapse mt-2" id="review-@b.Id">
+                                <form asp-action="AddListingReview" method="post">
+                                    <input type="hidden" name="listingId" value="@b.ListingId" />
+                                    <select name="rating" class="form-select form-select-sm mb-1" style="max-width:120px;">
+                                        <option value="5">5</option>
+                                        <option value="4">4</option>
+                                        <option value="3">3</option>
+                                        <option value="2">2</option>
+                                        <option value="1">1</option>
+                                    </select>
+                                    <textarea name="comment" class="form-control form-control-sm mb-1" rows="2" placeholder="Your review"></textarea>
+                                    <button type="submit" class="btn btn-sm btn-success">Submit</button>
+                                </form>
+                            </div>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+@if (Model.Count == 0)
+{
+    <p class="text-muted">No bookings yet.</p>
+}

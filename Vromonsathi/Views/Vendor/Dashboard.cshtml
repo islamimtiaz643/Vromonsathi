@@ -1,0 +1,26 @@
+﻿@{
+    ViewData["Title"] = "Vendor Dashboard";
+    var vendor = ViewBag.VendorProfile as VendorProfile;
+}
+
+<div class="wrap" style="padding:40px 28px;">
+    <span class="tag">Vendor panel</span>
+    <h2 style="margin-bottom:8px;">@vendor.BusinessName</h2>
+
+    @if (!vendor.IsApproved)
+    {
+        <div class="alert-box" style="margin-bottom:20px;">Your account is pending admin approval. You can browse but cannot add listings yet.</div>
+    }
+
+    <div class="stat-grid">
+        <div class="stat-card"><div class="label">Listings</div><div class="value">@ViewBag.TotalListings</div></div>
+        <div class="stat-card"><div class="label">Bookings</div><div class="value">@ViewBag.TotalBookings</div></div>
+        <div class="stat-card"><div class="label">Pending</div><div class="value">@ViewBag.PendingBookings</div></div>
+        <div class="stat-card"><div class="label">Revenue</div><div class="value">৳@ViewBag.Revenue</div></div>
+    </div>
+
+    <div class="action-grid">
+        <a asp-action="Listings" class="btn btn-ghost">My Listings</a>
+        <a asp-action="Bookings" class="btn btn-ghost">Manage Bookings</a>
+    </div>
+</div>

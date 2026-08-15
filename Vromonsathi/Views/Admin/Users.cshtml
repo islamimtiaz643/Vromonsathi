@@ -1,0 +1,27 @@
+﻿@model List<User>
+@{
+    ViewData["Title"] = "Manage Users";
+}
+
+<h2 class="mb-4">Manage Users</h2>
+<div class="table-responsive">
+    <table class="table table-striped align-middle">
+        <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Action</th></tr></thead>
+        <tbody>
+            @foreach (var u in Model)
+            {
+                <tr>
+                    <td>@u.FullName</td>
+                    <td>@u.Email</td>
+                    <td>@u.Role</td>
+                    <td>@(u.IsActive ? "Active" : "Deactivated")</td>
+                    <td>
+                        <a asp-action="ToggleUserActive" asp-route-id="@u.Id" class="btn btn-sm @(u.IsActive ? "btn-danger" : "btn-success")">
+                            @(u.IsActive ? "Deactivate" : "Activate")
+                        </a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

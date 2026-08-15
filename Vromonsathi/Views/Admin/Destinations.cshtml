@@ -1,0 +1,30 @@
+﻿@model List<Destination>
+@{
+    ViewData["Title"] = "Manage Destinations";
+}
+
+<div class="d-flex justify-content-between mb-3">
+    <h2>Manage Destinations</h2>
+    <a asp-action="CreateDestination" class="btn btn-success">+ Add Destination</a>
+</div>
+<div class="table-responsive">
+    <table class="table table-striped align-middle">
+        <thead><tr><th>Name</th><th>District</th><th>Division</th><th>Entry Fee</th><th>Action</th></tr></thead>
+        <tbody>
+            @foreach (var d in Model)
+            {
+                <tr>
+                    <td>@d.Name</td>
+                    <td>@d.District</td>
+                    <td>@d.Division</td>
+                    <td>৳@d.EntryFee</td>
+                    <td>
+                        <a asp-action="EditDestination" asp-route-id="@d.Id" class="btn btn-sm btn-outline-primary">Edit</a>
+                        <a asp-action="DeleteDestination" asp-route-id="@d.Id" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete this destination?');">Delete</a>
+                        <a asp-action="Checkpoints" asp-route-destinationId="@d.Id" class="btn btn-sm btn-outline-secondary">Checkpoints</a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

@@ -1,0 +1,28 @@
+﻿@model List<Checkpoint>
+@{
+    ViewData["Title"] = "Checkpoints"; var dest = ViewBag.Destination as Destination;
+}
+
+<div class="d-flex justify-content-between mb-3">
+    <h2>Checkpoints — @dest.Name</h2>
+    <a asp-action="CreateCheckpoint" asp-route-destinationId="@dest.Id" class="btn btn-success">+ Add Checkpoint</a>
+</div>
+<div class="table-responsive">
+    <table class="table table-striped align-middle">
+        <thead><tr><th>#</th><th>Type</th><th>Name</th><th>Distance (km)</th><th>Notes</th><th>Action</th></tr></thead>
+        <tbody>
+            @foreach (var c in Model)
+            {
+                <tr>
+                    <td>@c.SequenceOrder</td>
+                    <td>@c.Type</td>
+                    <td>@c.Name</td>
+                    <td>@c.DistanceFromStartKm</td>
+                    <td>@c.Notes</td>
+                    <td><a asp-action="DeleteCheckpoint" asp-route-id="@c.Id" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete?');">Delete</a></td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+<a asp-action="Destinations" class="btn btn-secondary">Back to Destinations</a>

@@ -1,0 +1,28 @@
+﻿@model List<Review>
+@{
+    ViewData["Title"] = "Moderate Reviews";
+}
+
+<h2 class="mb-4">Moderate Reviews</h2>
+<div class="table-responsive">
+    <table class="table table-striped align-middle">
+        <thead><tr><th>By</th><th>On</th><th>Rating</th><th>Comment</th><th>Status</th><th>Action</th></tr></thead>
+        <tbody>
+            @foreach (var r in Model)
+            {
+                <tr>
+                    <td>@r.TouristUser.FullName</td>
+                    <td>@(r.Destination?.Name ?? r.Listing?.Title)</td>
+                    <td>@r.Rating / 5</td>
+                    <td>@r.Comment</td>
+                    <td>@(r.IsApproved ? "Visible" : "Hidden")</td>
+                    <td>
+                        <a asp-action="ToggleReviewApproval" asp-route-id="@r.Id" class="btn btn-sm @(r.IsApproved ? "btn-outline-danger" : "btn-outline-success")">
+                            @(r.IsApproved ? "Hide" : "Show")
+                        </a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

@@ -1,0 +1,28 @@
+﻿@model Listing
+@{
+    ViewData["Title"] = "Book " + Model.Title;
+}
+
+<h2 class="mb-4">Book: @Model.Title</h2>
+<p class="text-muted">by @Model.VendorProfile.BusinessName — ৳@Model.Price per person/unit</p>
+<p>@Model.Description</p>
+
+<form asp-action="BookListing" method="post">
+    <input type="hidden" name="listingId" value="@Model.Id" />
+    <div class="row g-3">
+        <div class="col-md-4">
+            <label class="form-label">Start Date</label>
+            <input type="date" name="startDate" class="form-control" required />
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">End Date (optional)</label>
+            <input type="date" name="endDate" class="form-control" />
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">Number of People</label>
+            <input type="number" name="numberOfPeople" class="form-control" value="1" min="1" />
+        </div>
+    </div>
+    <button type="submit" class="btn btn-success mt-3">Confirm Booking Request</button>
+    <a asp-controller="Destination" asp-action="Index" class="btn btn-secondary mt-3">Cancel</a>
+</form>

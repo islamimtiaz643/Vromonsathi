@@ -1,0 +1,414 @@
+﻿@using Vromonsathi
+@using Vromonsathi.Models
+@using Vromonsathi.ViewModels
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+@model HomeIndexViewModel
+@{
+    ViewData["Title"] = "Smart Tourism Planner";
+}
+
+<section class="hero">
+    <svg class="contour-bg" viewBox="0 0 1180 500" preserveAspectRatio="none">
+        <path d="M-50 380 Q 200 300 400 360 T 900 320 T 1300 380" stroke="#0F3D2E" stroke-width="1" fill="none" opacity="0.5" />
+        <path d="M-50 420 Q 220 340 420 400 T 920 360 T 1300 420" stroke="#0F3D2E" stroke-width="1" fill="none" opacity="0.35" />
+        <path d="M-50 460 Q 240 400 460 440 T 940 410 T 1300 460" stroke="#0F3D2E" stroke-width="1" fill="none" opacity="0.25" />
+        <path d="M-50 90 Q 200 40 420 80 T 900 60 T 1300 90" stroke="#1C6B74" stroke-width="1" fill="none" opacity="0.3" />
+    </svg>
+    <div class="wrap">
+        <div class="eyebrow">Smart Tourism Planner · Bangladesh</div>
+        <h1>Plan the trip. <span class="accent">See the true cost</span> — before you pack a bag.</h1>
+        <p class="lede">One dynamic plan for accommodation, guides, transport and permits — with a live budget that updates as you choose, destination-matched itineraries, and every army, BGB and police checkpoint you'll clear on the way.</p>
+        <div class="hero-actions">
+            <a class="btn btn-primary" href="#estimator">Build my itinerary</a>
+            <a class="btn btn-ghost" asp-controller="Destination" asp-action="Index">Browse destinations</a>
+        </div>
+
+        @if (Model.Announcements.Count > 0)
+        {
+            <div style="margin-top:24px; display:flex; flex-direction:column; gap:8px;">
+                @foreach (var a in Model.Announcements)
+                {
+                    <div class="alert-box"><strong>@a.Title</strong> — @a.Content</div>
+                }
+            </div>
+        }
+
+        @if (Model.Destinations.Count == 0)
+        {
+            <div class="alert-box" style="margin-top:24px;">No destinations added yet. An Admin needs to add destinations and facilities before the estimator can run.</div>
+        }
+        else
+        {
+            <div class="estimator" id="estimator">
+                <div class="estimator-form">
+                    <h3>Live Trip Cost Estimator</h3>
+                    <span class="sub">DESTINATION → FACILITIES → GROUP → TOTAL</span>
+
+                    <div class="row2">
+                        <div class="field">
+                            <label>Destination</label>
+                            <select id="destSelect">
+                                @foreach (var d in Model.Destinations)
+                                {
+                                    <option value="@d.Id">@d.Name, @d.Division</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="field">
+                            <label>Trip length</label>
+                            <select id="daysSelect">
+                                <option value="2">2 days / 1 night</option>
+                                <option value="3" selected>3 days / 2 nights</option>
+                                <option value="4">4 days / 3 nights</option>
+                                <option value="6">6 days / 5 nights</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="field">
+                        <label>Group size</label>
+                        <div class="range-row">
+                            <input type="range" id="groupRange" min="1" max="16" value="4">
+                            <span class="range-val" id="groupVal">4 people</span>
+                        </div>
+                    </div>
+
+                    <div class="field">
+                        <label>Required facilities</label>
+                        <div class="chip-grid" id="facilityChips">
+                            @foreach (var f in Model.Facilities)
+                            {
+                                var isOn = f.Key == FacilityType.Hotel || f.Key == FacilityType.Guide;
+                                <label class="chip @(isOn ? "on" : "")">
+                                    <input type="checkbox" checked="@isOn" value="@f.Key" /> @f.NameEn
+                                    <span class="price">৳@f.DefaultPrice.ToString("N0")</span>
+                                </label>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <div class="estimator-result">
+                    <span class="sub">Estimated total budget</span>
+                    <div class="total-figure"><sup>৳</sup><span id="totalOut">0</span></div>
+                    <div class="per-person" id="perPersonOut">—</div>
+                    <div class="breakdown" id="breakdownOut"></div>
+                </div>
+            </div>
+        }
+    </div>
+</section>
+
+<hr class="divider">
+
+<section id="destinations">
+    <div class="wrap">
+        <div class="section-head">
+            <div>
+                <span class="tag">Destination-wise plans</span>
+                <h2>Every region plans differently</h2>
+            </div>
+            <p>Pick a destination and Vromonsathi assembles the checkpoints you'll pass, plus real vendor listings you can book directly.</p>
+        </div>
+
+        <div class="dest-grid">
+            @foreach (var d in Model.Destinations)
+            {
+                var army = d.Checkpoints.Count(c => c.Type == CheckpointType.Army);
+                var bgb = d.Checkpoints.Count(c => c.Type == CheckpointType.BGB);
+                var police = d.Checkpoints.Count(c => c.Type == CheckpointType.Police);
+                var bg = string.IsNullOrEmpty(d.ImageUrl) ? "background:linear-gradient(135deg,#1B4332,#0B2B20);" : $"background-image:url('{d.ImageUrl}');";
+
+                <a class="dest-card" asp-controller="Destination" asp-action="Details" asp-route-id="@d.Id">
+                    <div class="dest-photo" style="@bg">
+                        <span>@d.Division</span>
+                    </div>
+                    <div class="dest-body">
+                        <span class="region">@d.District</span>
+                        <h3>@d.Name</h3>
+                        <div class="dest-meta">
+                            @if (!string.IsNullOrEmpty(d.NearestViewpointName))
+                            {
+                                <div><span class="k">Nearest viewpoint</span><span class="v">@d.NearestViewpointName</span></div>
+                            }
+                            @if (d.NearestViewpointDistanceKm != null)
+                            {
+                                <div><span class="k">Distance</span><span class="v">@d.NearestViewpointDistanceKm km</span></div>
+                            }
+                            <div><span class="k">Best time</span><span class="v">@d.BestTimeToVisit</span></div>
+                        </div>
+                        <div class="checkpoint-tags">
+                            @if (army > 0)
+                            {
+                                <span class="cp-tag cp-army"><span class="cp-dot"></span>@army army</span>
+                            }
+                            @if (bgb > 0)
+                            {
+                                <span class="cp-tag cp-bgb"><span class="cp-dot"></span>@bgb BGB</span>
+                            }
+                            @if (police > 0)
+                            {
+                                <span class="cp-tag cp-police"><span class="cp-dot"></span>@police police</span>
+                            }
+                            @if (d.RequiresConvoyEscort)
+                            {
+                                <span class="cp-tag cp-army"><span class="cp-dot"></span>Escort convoy</span>
+                            }
+                        </div>
+                    </div>
+                </a>
+            }
+        </div>
+    </div>
+</section>
+
+@if (Model.RouteShowcase != null)
+{
+    var checkpoints = Model.RouteShowcase.Checkpoints.OrderBy(c => c.SequenceOrder).ToList();
+    var n = checkpoints.Count;
+
+    var points = new List<(double x, double y, string label, string color)>();
+    points.Add((40, 150, Model.RouteShowcase.Division, "#F4F0E4"));
+    for (int i = 0; i < n; i++)
+    {
+        double x = 40 + (i + 1) * (920.0 / (n + 1));
+        double y = (i % 2 == 0) ? 90 : 160;
+        string color = checkpoints[i].Type switch
+        {
+            CheckpointType.Army => "#C9A15E",
+            CheckpointType.BGB => "#1C6B74",
+            CheckpointType.Police => "#E37A6E",
+            _ => "#D9A544"
+        };
+        points.Add((x, y, $"{checkpoints[i].Type} · {checkpoints[i].Name}", color));
+    }
+    points.Add((960, 110, Model.RouteShowcase.Name, "#D9A544"));
+
+    var pathD = string.Join(" ", points.Select((p, i) => (i == 0 ? "M" : "L") + $"{p.x.ToString(System.Globalization.CultureInfo.InvariantCulture)} {p.y.ToString(System.Globalization.CultureInfo.InvariantCulture)}"));
+
+    <section id="routes">
+        <div class="wrap">
+            <div class="route-panel">
+                <div class="section-head">
+                    <div>
+                        <span class="tag">Route &amp; checkpoint map</span>
+                        <h2>@Model.RouteShowcase.Division → @Model.RouteShowcase.Name</h2>
+                    </div>
+                    <p>A live road map shows each checkpoint on the route, so groups know exactly what's ahead.</p>
+                </div>
+
+                <svg class="route-svg" viewBox="0 0 1000 220" fill="none">
+                    <path d="@pathD" stroke="#D9A544" stroke-width="3" stroke-dasharray="2 10" stroke-linecap="round" />
+                    @foreach (var p in points)
+                    {
+                        var r = p == points.First() || p == points.Last() ? 8 : 6;
+                        var ty = p.y - (p.y < 120 ? 18 : -22);
+                        var xStr = p.x.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                        var yStr = p.y.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                        var tyStr = ty.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                        var safeLabel = System.Net.WebUtility.HtmlEncode(p.label);
+
+                        var svgFragment = $"<circle cx=\"{xStr}\" cy=\"{yStr}\" r=\"{r}\" fill=\"{p.color}\"/>" +
+                                           $"<text x=\"{xStr}\" y=\"{tyStr}\" fill=\"#F4F0E4\" font-family=\"IBM Plex Mono\" font-size=\"11\" text-anchor=\"middle\">{safeLabel}</text>";
+
+                        @Html.Raw(svgFragment)
+                    }
+                </svg>
+
+                <div class="route-legend">
+                    <div><span class="dot" style="background:#1C6B74;"></span> BGB camp — ID check, register group</div>
+                    <div><span class="dot" style="background:#C9A15E;"></span> Army camp — convoy departure point</div>
+                    <div><span class="dot" style="background:#E37A6E;"></span> Police checkpost</div>
+                    <div><span class="dot" style="background:#D9A544;"></span> Start / destination</div>
+                </div>
+            </div>
+        </div>
+    </section>
+}
+
+<section id="facilities">
+    <div class="wrap">
+        <div class="section-head">
+            <div>
+                <span class="tag">Required facilities</span>
+                <h2>Add what you need — nothing you don't</h2>
+            </div>
+            <p>Every facility toggled in the estimator above pulls real vendor rates for the chosen destination and adjusts the total instantly.</p>
+        </div>
+
+        <div class="fac-grid">
+            @foreach (var f in Model.Facilities)
+            {
+                <div class="fac-card">
+                    <h4>@f.NameEn</h4>
+                    <p>@f.Description</p>
+                </div>
+            }
+            @if (Model.Facilities.Count == 0)
+            {
+                <p class="text-muted">No facilities configured yet.</p>
+            }
+        </div>
+    </div>
+</section>
+
+@if (Model.GroupCosting.Count > 0)
+{
+    <section id="group-costing">
+        <div class="wrap">
+            <div class="section-head">
+                <div>
+                    <span class="tag">Group costing</span>
+                    <h2>Cost per person, by group size</h2>
+                </div>
+                <p>Transport and guide fees split across the group; entry fees and meals stay per-person. Updates when you change destination in the estimator above.</p>
+            </div>
+
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Group size</th>
+                            <th class="num">Shared cost</th>
+                            <th class="num">Per-person fixed</th>
+                            <th class="num">Total budget</th>
+                            <th class="num">Cost per person</th>
+                        </tr>
+                    </thead>
+                    <tbody id="groupCostingBody">
+                        @foreach (var row in Model.GroupCosting)
+                        {
+                            <tr class="@(row.GroupSize == 4 ? "highlight" : "")">
+                                <td>@row.GroupSize travelers</td>
+                                <td class="num">৳ @row.SharedCost.ToString("N0")</td>
+                                <td class="num">৳ @row.PerPersonFixed.ToString("N0")</td>
+                                <td class="num">৳ @row.TotalBudget.ToString("N0")</td>
+                                <td class="num">৳ @row.CostPerPerson.ToString("N0")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+}
+
+<section id="aid" class="aid-section">
+    <div class="wrap">
+        <div class="section-head">
+            <div>
+                <span class="tag">Aid &amp; emergency</span>
+                <h2>Help stays one tap away</h2>
+            </div>
+            <p>Live location shares with the nearest post the moment SOS is pressed.</p>
+        </div>
+
+        <div class="aid-grid">
+            <div class="sos-card">
+                <h3>SOS / Emergency alert</h3>
+                <p>Sends your live GPS location to the tourist police and the nearest checkpoint on your route.</p>
+                <button class="pulse-btn" id="sosBtn">SOS</button>
+                <p id="sosResult" class="mono" style="margin-top:14px; font-size:12.5px; opacity:0.9;"></p>
+            </div>
+
+            <div class="contact-list">
+                @foreach (var c in Model.EmergencyContacts)
+                {
+                    <div class="contact-row">
+                        <div><div class="name">@c.Name</div><div class="role">@c.Type</div></div>
+                        <div class="num">@c.Phone</div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</section>
+
+@section Scripts {
+    @if (Model.Destinations.Count > 0)
+    {
+        <script>
+            const destSelect = document.getElementById('destSelect');
+            const daysSelect = document.getElementById('daysSelect');
+            const groupRange = document.getElementById('groupRange');
+            const groupVal = document.getElementById('groupVal');
+            const chips = document.querySelectorAll('#facilityChips .chip');
+            const totalOut = document.getElementById('totalOut');
+            const perPersonOut = document.getElementById('perPersonOut');
+            const breakdownOut = document.getElementById('breakdownOut');
+            const groupCostingBody = document.getElementById('groupCostingBody');
+
+            function fmt(n) { return Math.round(n).toLocaleString('en-US'); }
+
+            async function calculate() {
+                groupVal.textContent = groupRange.value + (groupRange.value == 1 ? ' person' : ' people');
+                chips.forEach(chip => { chip.classList.toggle('on', chip.querySelector('input').checked); });
+
+                const selectedFacilities = Array.from(chips).map(c => c.querySelector('input')).filter(i => i.checked).map(i => i.value);
+                const destinationId = parseInt(destSelect.value);
+                const days = parseInt(daysSelect.value);
+                const groupSize = parseInt(groupRange.value);
+
+                const res = await fetch('/Budget/Estimate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ destinationId, days, groupSize, selectedFacilities })
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    totalOut.textContent = fmt(data.totalCost);
+                    perPersonOut.textContent = `৳ ${fmt(data.costPerPerson)} per person · ${groupSize} travelers, ${days} days`;
+                    breakdownOut.innerHTML = data.breakdown.map(b => `<div class="breakdown-row"><span>${b.label}</span><span>৳ ${fmt(b.amount)}</span></div>`).join('');
+                }
+
+                if (groupCostingBody) {
+                    const gcRes = await fetch(`/Budget/GroupCosting?destinationId=${destinationId}&days=${days}`);
+                    if (gcRes.ok) {
+                        const rows = await gcRes.json();
+                        groupCostingBody.innerHTML = rows.map(r => `
+                      <tr class="${r.groupSize === 4 ? 'highlight' : ''}">
+                        <td>${r.groupSize} travelers</td>
+                        <td class="num">৳ ${fmt(r.sharedCost)}</td>
+                        <td class="num">৳ ${fmt(r.perPersonFixed)}</td>
+                        <td class="num">৳ ${fmt(r.totalBudget)}</td>
+                        <td class="num">৳ ${fmt(r.costPerPerson)}</td>
+                      </tr>`).join('');
+                    }
+                }
+            }
+
+            [destSelect, daysSelect, groupRange].forEach(el => el.addEventListener('input', calculate));
+            chips.forEach(c => c.querySelector('input').addEventListener('change', calculate));
+            document.addEventListener('DOMContentLoaded', calculate);
+            }
+        </script>
+    }
+    <script>
+        const sosBtn = document.getElementById('sosBtn');
+        if (sosBtn) {
+            sosBtn.addEventListener('click', () => {
+                const resultEl = document.getElementById('sosResult');
+                resultEl.textContent = 'Sending location…';
+                const destSelectEl = document.getElementById('destSelect');
+                const destId = destSelectEl ? parseInt(destSelectEl.value) : 0;
+
+                const send = async (lat, lng) => {
+                    const res = await fetch('/Emergency/Sos', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ destinationId: destId, latitude: lat, longitude: lng })
+                    });
+                    const json = await res.json();
+                    resultEl.textContent = `Routed to ${json.routedTo} · ${json.phone}`;
+                };
+
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(pos => send(pos.coords.latitude, pos.coords.longitude), () => send(0, 0));
+                } else {
+                    send(0, 0);
+                }
+            });
+        }
+    </script>
+}

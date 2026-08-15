@@ -1,0 +1,35 @@
+﻿@model EmergencyContact
+@{
+    ViewData["Title"] = "Add Emergency Contact";
+}
+
+<h2 class="mb-4">Add Emergency Contact</h2>
+<form asp-action="CreateEmergencyContact" method="post">
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+    <div class="row g-3">
+        <div class="col-md-4">
+            <label class="form-label">Type</label>
+            <select asp-for="Type" class="form-select">
+                <option value="TouristPolice">TouristPolice</option>
+                <option value="Police">Police</option>
+                <option value="BGB">BGB</option>
+                <option value="Hospital">Hospital</option>
+                <option value="Army">Army</option>
+            </select>
+        </div>
+        <div class="col-md-4"><label class="form-label">Name</label><input asp-for="Name" class="form-control" /></div>
+        <div class="col-md-4"><label class="form-label">Phone</label><input asp-for="Phone" class="form-control" /></div>
+        <div class="col-md-6">
+            <label class="form-label">Destination (leave blank for general/all)</label>
+            <select asp-for="DestinationId" class="form-select">
+                <option value="">-- General (shows everywhere) --</option>
+                @foreach (var d in (List<Destination>)ViewBag.Destinations)
+                {
+                    <option value="@d.Id">@d.Name</option>
+                }
+            </select>
+        </div>
+    </div>
+    <button type="submit" class="btn btn-success mt-3">Save</button>
+    <a asp-action="EmergencyContacts" class="btn btn-secondary mt-3">Cancel</a>
+</form>
