@@ -1,10 +1,14 @@
-﻿namespace Vromonsathi.Models
+﻿using System.Text.Json.Serialization;
+
+namespace Vromonsathi.Models
 {
     public class Checkpoint
     {
         public int Id { get; set; }
 
         public int DestinationId { get; set; }
+
+        [JsonIgnore]
         public Destination? Destination { get; set; }
 
         public CheckpointType Type { get; set; }

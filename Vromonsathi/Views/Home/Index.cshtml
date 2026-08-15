@@ -340,6 +340,12 @@
 
             function fmt(n) { return Math.round(n).toLocaleString('en-US'); }
 
+            function showEstimatorError(message) {
+                totalOut.textContent = '—';
+                perPersonOut.textContent = message;
+                breakdownOut.innerHTML = '';
+            }
+
             async function calculate() {
                 groupVal.textContent = groupRange.value + (groupRange.value == 1 ? ' person' : ' people');
                 chips.forEach(chip => { chip.classList.toggle('on', chip.querySelector('input').checked); });
@@ -349,31 +355,66 @@
                 const days = parseInt(daysSelect.value);
                 const groupSize = parseInt(groupRange.value);
 
-                const res = await fetch('/Budget/Estimate', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ destinationId, days, groupSize, selectedFacilities })
-                });
+                if (!destinationId || isNaN(destinationId)) {
+                    showEstimatorError('Please choose a destination.');
+                    return;
+                }
+                if (!days || days < 1 || !groupSize || groupSize < 1) {
+                    showEstimatorError('Please choose a valid trip length and group size.');
+                    return;
+                }
 
-                if (res.ok) {
+                try {
+                    const res = await fetch('/Budget/Estimate', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ destinationId, days, groupSize, selectedFacilities })
+                    });
+
+                    if (res.status === 400) {
+                        console.error('Budget estimate 400:', await res.text());
+                        showEstimatorError('Please check your selections and try again.');
+                        return;
+                    }
+                    if (res.status === 404) {
+                        console.error('Budget estimate 404:', await res.text());
+                        showEstimatorError('That destination could not be found.');
+                        return;
+                    }
+                    if (!res.ok) {
+                        console.error('Budget estimate failed:', res.status, await res.text());
+                        showEstimatorError('Unable to calculate budget. Please try again.');
+                        return;
+                    }
+
                     const data = await res.json();
                     totalOut.textContent = fmt(data.totalCost);
                     perPersonOut.textContent = `৳ ${fmt(data.costPerPerson)} per person · ${groupSize} travelers, ${days} days`;
                     breakdownOut.innerHTML = data.breakdown.map(b => `<div class="breakdown-row"><span>${b.label}</span><span>৳ ${fmt(b.amount)}</span></div>`).join('');
+                } catch (err) {
+                    console.error('Network error while calculating budget:', err);
+                    showEstimatorError('Unable to calculate budget. Please check your connection and try again.');
+                    return;
                 }
 
                 if (groupCostingBody) {
-                    const gcRes = await fetch(`/Budget/GroupCosting?destinationId=${destinationId}&days=${days}`);
-                    if (gcRes.ok) {
-                        const rows = await gcRes.json();
-                        groupCostingBody.innerHTML = rows.map(r => `
-                      <tr class="${r.groupSize === 4 ? 'highlight' : ''}">
-                        <td>${r.groupSize} travelers</td>
-                        <td class="num">৳ ${fmt(r.sharedCost)}</td>
-                        <td class="num">৳ ${fmt(r.perPersonFixed)}</td>
-                        <td class="num">৳ ${fmt(r.totalBudget)}</td>
-                        <td class="num">৳ ${fmt(r.costPerPerson)}</td>
-                      </tr>`).join('');
+                    try {
+                        const gcRes = await fetch(`/Budget/GroupCosting?destinationId=${destinationId}&days=${days}`);
+                        if (gcRes.ok) {
+                            const rows = await gcRes.json();
+                            groupCostingBody.innerHTML = rows.map(r => `
+                              <tr class="${r.groupSize === 4 ? 'highlight' : ''}">
+                                <td>${r.groupSize} travelers</td>
+                                <td class="num">৳ ${fmt(r.sharedCost)}</td>
+                                <td class="num">৳ ${fmt(r.perPersonFixed)}</td>
+                                <td class="num">৳ ${fmt(r.totalBudget)}</td>
+                                <td class="num">৳ ${fmt(r.costPerPerson)}</td>
+                              </tr>`).join('');
+                        } else {
+                            console.error('Group costing failed:', gcRes.status, await gcRes.text());
+                        }
+                    } catch (err) {
+                        console.error('Network error while loading group costing table:', err);
                     }
                 }
             }
@@ -381,7 +422,6 @@
             [destSelect, daysSelect, groupRange].forEach(el => el.addEventListener('input', calculate));
             chips.forEach(c => c.querySelector('input').addEventListener('change', calculate));
             document.addEventListener('DOMContentLoaded', calculate);
-            }
         </script>
     }
     <script>
