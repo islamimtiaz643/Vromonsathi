@@ -1,19 +1,46 @@
-﻿@using Vromonsathi
-@using Vromonsathi.Models
-@using Vromonsathi.ViewModels
-@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
-@model HomeIndexViewModel
+﻿@model HomeIndexViewModel
 @{
     ViewData["Title"] = "Smart Tourism Planner";
 }
 
 <section class="hero">
-    <svg class="contour-bg" viewBox="0 0 1180 500" preserveAspectRatio="none">
-        <path d="M-50 380 Q 200 300 400 360 T 900 320 T 1300 380" stroke="#0F3D2E" stroke-width="1" fill="none" opacity="0.5" />
-        <path d="M-50 420 Q 220 340 420 400 T 920 360 T 1300 420" stroke="#0F3D2E" stroke-width="1" fill="none" opacity="0.35" />
-        <path d="M-50 460 Q 240 400 460 440 T 940 410 T 1300 460" stroke="#0F3D2E" stroke-width="1" fill="none" opacity="0.25" />
-        <path d="M-50 90 Q 200 40 420 80 T 900 60 T 1300 90" stroke="#1C6B74" stroke-width="1" fill="none" opacity="0.3" />
-    </svg>
+    <div class="hero-scene" id="heroScene">
+
+        <svg class="hero-layer" data-depth="8" viewBox="0 0 1180 500" preserveAspectRatio="xMidYMid slice">
+            <path d="M-50 200 L120 120 L260 210 L400 100 L560 220 L720 90 L880 200 L1040 110 L1230 190 L1230 500 L-50 500 Z"
+                  fill="#0F3D2E" opacity="0.10" />
+        </svg>
+
+        <svg class="hero-layer" data-depth="18" viewBox="0 0 1180 500" preserveAspectRatio="xMidYMid slice">
+            <path d="M-50 260 L150 160 L320 250 L500 140 L680 260 L860 150 L1040 250 L1230 170 L1230 500 L-50 500 Z"
+                  fill="#1C5A42" opacity="0.16" />
+            <circle class="hero-cloud c1" cx="180" cy="80" r="26" fill="#F4F0E4" opacity="0.6" />
+            <circle class="hero-cloud c1" cx="215" cy="88" r="18" fill="#F4F0E4" opacity="0.6" />
+            <circle class="hero-cloud c2" cx="620" cy="55" r="22" fill="#F4F0E4" opacity="0.5" />
+            <circle class="hero-cloud c2" cx="650" cy="62" r="15" fill="#F4F0E4" opacity="0.5" />
+            <circle class="hero-cloud c3" cx="980" cy="95" r="20" fill="#F4F0E4" opacity="0.55" />
+        </svg>
+
+        <svg class="hero-layer" data-depth="30" viewBox="0 0 1180 500" preserveAspectRatio="none">
+            <path d="M-50 380 Q 200 300 400 360 T 900 320 T 1300 380" stroke="#0F3D2E" stroke-width="1" fill="none" opacity="0.5" />
+            <path d="M-50 420 Q 220 340 420 400 T 920 360 T 1300 420" stroke="#0F3D2E" stroke-width="1" fill="none" opacity="0.35" />
+            <path d="M-50 460 Q 240 400 460 440 T 940 410 T 1300 460" stroke="#0F3D2E" stroke-width="1" fill="none" opacity="0.25" />
+            <path d="M-50 90 Q 200 40 420 80 T 900 60 T 1300 90" stroke="#1C6B74" stroke-width="1" fill="none" opacity="0.3" />
+        </svg>
+
+        <svg class="hero-layer" data-depth="46" viewBox="0 0 1180 500" preserveAspectRatio="xMidYMid slice">
+            <path class="hero-route-line" d="M60 340 Q 260 260 420 320 T 760 260 T 1080 300"
+                  stroke="#D9A544" stroke-width="2.5" fill="none" stroke-linecap="round" opacity="0.85" />
+            <circle cx="60" cy="340" r="5" fill="#1C6B74" />
+            <circle cx="420" cy="320" r="4" fill="#B23A2E" />
+            <circle cx="760" cy="260" r="4" fill="#1C6B74" />
+            <g class="hero-marker">
+                <circle cx="1080" cy="300" r="7" fill="#D9A544" />
+                <circle cx="1080" cy="300" r="12" fill="none" stroke="#D9A544" stroke-width="1.5" opacity="0.5" />
+            </g>
+        </svg>
+
+    </div>
     <div class="wrap">
         <div class="eyebrow">Smart Tourism Planner · Bangladesh</div>
         <h1>Plan the trip. <span class="accent">See the true cost</span> — before you pack a bag.</h1>
@@ -270,8 +297,8 @@
             </div>
         </div>
     </section>
-
 }
+
 <section id="facilities">
     <div class="wrap">
         <div class="section-head">
@@ -371,126 +398,137 @@
 </section>
 
 @section Scripts {
+    <script>
+        (function() {
+            var scene = document.getElementById('heroScene');
+            if (!scene) return;
+            if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+            var layers = Array.prototype.slice.call(scene.querySelectorAll('.hero-layer'));
+            var mx = 0, my = 0, sy = 0;
+
+            function apply() {
+                layers.forEach(function(layer) {
+                    var depth = parseFloat(layer.dataset.depth || '20');
+                    var tx = (mx / 40) * (depth / 10);
+                    var ty = (my / 40) * (depth / 10) + (sy * (depth / 400));
+                    var rotY = (mx / 60) * (depth / 20);
+                    var rotX = (-my / 60) * (depth / 20);
+                    layer.style.transform = 'translate3d(' + tx + 'px, ' + ty + 'px, 0) rotateX(' + rotX + 'deg) rotateY(' + rotY + 'deg)';
+                });
+            }
+
+            var heroEl = document.querySelector('.hero');
+
+            heroEl.addEventListener('mousemove', function(e) {
+                var rect = scene.getBoundingClientRect();
+                mx = (e.clientX - rect.left - rect.width / 2);
+                my = (e.clientY - rect.top - rect.height / 2);
+                apply();
+            });
+
+            heroEl.addEventListener('mouseleave', function() {
+                mx = 0; my = 0;
+                apply();
+            });
+
+            window.addEventListener('scroll', function() {
+                sy = Math.min(window.scrollY, 600);
+                apply();
+            }, { passive: true });
+        })();
+    </script>
+
     @if (Model.Destinations.Count > 0)
     {
         <script>
-            const destSelect = document.getElementById('destSelect');
-            const daysSelect = document.getElementById('daysSelect');
-            const groupRange = document.getElementById('groupRange');
-            const groupVal = document.getElementById('groupVal');
-            const chips = document.querySelectorAll('#facilityChips .chip');
-            const totalOut = document.getElementById('totalOut');
-            const perPersonOut = document.getElementById('perPersonOut');
-            const breakdownOut = document.getElementById('breakdownOut');
-            const groupCostingBody = document.getElementById('groupCostingBody');
+            var destSelect = document.getElementById('destSelect');
+            var daysSelect = document.getElementById('daysSelect');
+            var groupRange = document.getElementById('groupRange');
+            var groupVal = document.getElementById('groupVal');
+            var chips = document.querySelectorAll('#facilityChips .chip');
+            var totalOut = document.getElementById('totalOut');
+            var perPersonOut = document.getElementById('perPersonOut');
+            var breakdownOut = document.getElementById('breakdownOut');
+            var groupCostingBody = document.getElementById('groupCostingBody');
 
             function fmt(n) { return Math.round(n).toLocaleString('en-US'); }
 
-            function showEstimatorError(message) {
-                totalOut.textContent = '—';
-                perPersonOut.textContent = message;
-                breakdownOut.innerHTML = '';
-            }
-
             async function calculate() {
                 groupVal.textContent = groupRange.value + (groupRange.value == 1 ? ' person' : ' people');
-                chips.forEach(chip => { chip.classList.toggle('on', chip.querySelector('input').checked); });
+                chips.forEach(function(chip) { chip.classList.toggle('on', chip.querySelector('input').checked); });
 
-                const selectedFacilities = Array.from(chips).map(c => c.querySelector('input')).filter(i => i.checked).map(i => i.value);
-                const destinationId = parseInt(destSelect.value);
-                const days = parseInt(daysSelect.value);
-                const groupSize = parseInt(groupRange.value);
+                var selectedFacilities = Array.prototype.slice.call(chips)
+                    .map(function(c) { return c.querySelector('input'); })
+                    .filter(function(i) { return i.checked; })
+                    .map(function(i) { return i.value; });
 
-                if (!destinationId || isNaN(destinationId)) {
-                    showEstimatorError('Please choose a destination.');
-                    return;
-                }
-                if (!days || days < 1 || !groupSize || groupSize < 1) {
-                    showEstimatorError('Please choose a valid trip length and group size.');
-                    return;
-                }
+                var destinationId = parseInt(destSelect.value);
+                var days = parseInt(daysSelect.value);
+                var groupSize = parseInt(groupRange.value);
 
-                try {
-                    const res = await fetch('/Budget/Estimate', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ destinationId, days, groupSize, selectedFacilities })
-                    });
+                var res = await fetch('/Budget/Estimate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ destinationId: destinationId, days: days, groupSize: groupSize, selectedFacilities: selectedFacilities })
+                });
 
-                    if (res.status === 400) {
-                        console.error('Budget estimate 400:', await res.text());
-                        showEstimatorError('Please check your selections and try again.');
-                        return;
-                    }
-                    if (res.status === 404) {
-                        console.error('Budget estimate 404:', await res.text());
-                        showEstimatorError('That destination could not be found.');
-                        return;
-                    }
-                    if (!res.ok) {
-                        console.error('Budget estimate failed:', res.status, await res.text());
-                        showEstimatorError('Unable to calculate budget. Please try again.');
-                        return;
-                    }
-
-                    const data = await res.json();
+                if (res.ok) {
+                    var data = await res.json();
                     totalOut.textContent = fmt(data.totalCost);
-                    perPersonOut.textContent = `৳ ${fmt(data.costPerPerson)} per person · ${groupSize} travelers, ${days} days`;
-                    breakdownOut.innerHTML = data.breakdown.map(b => `<div class="breakdown-row"><span>${b.label}</span><span>৳ ${fmt(b.amount)}</span></div>`).join('');
-                } catch (err) {
-                    console.error('Network error while calculating budget:', err);
-                    showEstimatorError('Unable to calculate budget. Please check your connection and try again.');
-                    return;
+                    perPersonOut.textContent = '৳ ' + fmt(data.costPerPerson) + ' per person · ' + groupSize + ' travelers, ' + days + ' days';
+                    breakdownOut.innerHTML = data.breakdown.map(function(b) {
+                        return '<div class="breakdown-row"><span>' + b.label + '</span><span>৳ ' + fmt(b.amount) + '</span></div>';
+                    }).join('');
                 }
 
                 if (groupCostingBody) {
-                    try {
-                        const gcRes = await fetch(`/Budget/GroupCosting?destinationId=${destinationId}&days=${days}`);
-                        if (gcRes.ok) {
-                            const rows = await gcRes.json();
-                            groupCostingBody.innerHTML = rows.map(r => `
-                              <tr class="${r.groupSize === 4 ? 'highlight' : ''}">
-                                <td>${r.groupSize} travelers</td>
-                                <td class="num">৳ ${fmt(r.sharedCost)}</td>
-                                <td class="num">৳ ${fmt(r.perPersonFixed)}</td>
-                                <td class="num">৳ ${fmt(r.totalBudget)}</td>
-                                <td class="num">৳ ${fmt(r.costPerPerson)}</td>
-                              </tr>`).join('');
-                        } else {
-                            console.error('Group costing failed:', gcRes.status, await gcRes.text());
-                        }
-                    } catch (err) {
-                        console.error('Network error while loading group costing table:', err);
+                    var gcRes = await fetch('/Budget/GroupCosting?destinationId=' + destinationId + '&days=' + days);
+                    if (gcRes.ok) {
+                        var rows = await gcRes.json();
+                        groupCostingBody.innerHTML = rows.map(function(r) {
+                            return '<tr class="' + (r.groupSize === 4 ? 'highlight' : '') + '">' +
+                                '<td>' + r.groupSize + ' travelers</td>' +
+                                '<td class="num">৳ ' + fmt(r.sharedCost) + '</td>' +
+                                '<td class="num">৳ ' + fmt(r.perPersonFixed) + '</td>' +
+                                '<td class="num">৳ ' + fmt(r.totalBudget) + '</td>' +
+                                '<td class="num">৳ ' + fmt(r.costPerPerson) + '</td>' +
+                                '</tr>';
+                        }).join('');
                     }
                 }
             }
 
-            [destSelect, daysSelect, groupRange].forEach(el => el.addEventListener('input', calculate));
-            chips.forEach(c => c.querySelector('input').addEventListener('change', calculate));
+            [destSelect, daysSelect, groupRange].forEach(function(el) { el.addEventListener('input', calculate); });
+            chips.forEach(function(c) { c.querySelector('input').addEventListener('change', calculate); });
             document.addEventListener('DOMContentLoaded', calculate);
         </script>
     }
-    <script>
-        const sosBtn = document.getElementById('sosBtn');
-        if (sosBtn) {
-            sosBtn.addEventListener('click', () => {
-                const resultEl = document.getElementById('sosResult');
-                resultEl.textContent = 'Sending location…';
-                const destSelectEl = document.getElementById('destSelect');
-                const destId = destSelectEl ? parseInt(destSelectEl.value) : 0;
 
-                const send = async (lat, lng) => {
-                    const res = await fetch('/Emergency/Sos', {
+    <script>
+        var sosBtn = document.getElementById('sosBtn');
+        if (sosBtn) {
+            sosBtn.addEventListener('click', function() {
+                var resultEl = document.getElementById('sosResult');
+                resultEl.textContent = 'Sending location…';
+                var destSelectEl = document.getElementById('destSelect');
+                var destId = destSelectEl ? parseInt(destSelectEl.value) : 0;
+
+                var send = async function(lat, lng) {
+                    var res = await fetch('/Emergency/Sos', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ destinationId: destId, latitude: lat, longitude: lng })
                     });
-                    const json = await res.json();
-                    resultEl.textContent = `Routed to ${json.routedTo} · ${json.phone}`;
+                    var json = await res.json();
+                    resultEl.textContent = 'Routed to ' + json.routedTo + ' · ' + json.phone;
                 };
 
                 if (navigator.geolocation) {
-                    navigator.geolocation.getCurrentPosition(pos => send(pos.coords.latitude, pos.coords.longitude), () => send(0, 0));
+                    navigator.geolocation.getCurrentPosition(
+                        function(pos) { send(pos.coords.latitude, pos.coords.longitude); },
+                        function() { send(0, 0); }
+                    );
                 } else {
                     send(0, 0);
                 }
