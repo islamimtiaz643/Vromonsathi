@@ -46,8 +46,16 @@ namespace Vromonsathi.Controllers
                 .ToListAsync();
 
             var announcements = await _context.Announcements
-                .OrderByDescending(a => a.CreatedAt)
-                .Take(3)
+    .OrderByDescending(a => a.CreatedAt)
+    .Take(3)
+    .ToListAsync();
+
+            var featuredListings = await _context.Listings
+                .Include(l => l.VendorProfile)
+                .Include(l => l.Destination)
+                .Where(l => l.IsActive && l.VendorProfile.IsApproved)
+                .OrderByDescending(l => l.CreatedAt)
+                .Take(6)
                 .ToListAsync();
 
             var vm = new HomeIndexViewModel
@@ -57,7 +65,8 @@ namespace Vromonsathi.Controllers
                 RouteShowcase = routeShowcase,
                 GroupCosting = groupCosting,
                 EmergencyContacts = emergencyContacts,
-                Announcements = announcements
+                Announcements = announcements,
+                FeaturedListings = featuredListings
             };
 
             return View(vm);

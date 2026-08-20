@@ -20,6 +20,7 @@ namespace Vromonsathi.Data
         public DbSet<Checkpoint> Checkpoints { get; set; }
         public DbSet<Facility> Facilities { get; set; }
         public DbSet<EmergencyContact> EmergencyContacts { get; set; }
+        public DbSet<TourPackage> TourPackages { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -48,10 +49,22 @@ namespace Vromonsathi.Data
                 .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<Booking>()
-                .HasOne(b => b.Listing)
-                .WithMany(l => l.Bookings)
-                .HasForeignKey(b => b.ListingId)
+     .HasOne(b => b.Listing)
+     .WithMany(l => l.Bookings)
+     .HasForeignKey(b => b.ListingId)
+     .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Booking>()
+                .HasOne(b => b.TourPackage)
+                .WithMany(p => p.Bookings)
+                .HasForeignKey(b => b.TourPackageId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<TourPackage>()
+                .HasOne(p => p.Destination)
+                .WithMany()
+                .HasForeignKey(p => p.DestinationId)
+                .OnDelete(DeleteBehavior.SetNull);
 
             modelBuilder.Entity<Review>()
                 .HasOne(r => r.TouristUser)

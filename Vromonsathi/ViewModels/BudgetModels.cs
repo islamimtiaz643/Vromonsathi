@@ -56,5 +56,6 @@
         public List<GroupCostingRow> GroupCosting { get; set; } = new();
         public List<Vromonsathi.Models.EmergencyContact> EmergencyContacts { get; set; } = new();
         public List<Vromonsathi.Models.Announcement> Announcements { get; set; } = new();
+        public List<Vromonsathi.Models.Listing> FeaturedListings { get; set; } = new();
     }
 }

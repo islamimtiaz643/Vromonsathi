@@ -226,6 +226,44 @@
     </section>
 }
 
+@if (Model.FeaturedListings.Count > 0)
+{
+    <section id="packages">
+        <div class="wrap">
+            <div class="section-head">
+                <div>
+                    <span class="tag">Book directly</span>
+                    <h2>Featured tour packages</h2>
+                </div>
+                <p>Real listings from approved vendors — hotels, guided tours and transport, ready to book now.</p>
+            </div>
+
+            <div class="dest-grid">
+                @foreach (var l in Model.FeaturedListings)
+                {
+                    <div class="fac-card">
+                        <h4>@l.Title <span class="badge badge-confirmed">@l.Category</span></h4>
+                        <p style="margin:6px 0; opacity:0.75;">by @l.VendorProfile.BusinessName @(l.Destination != null ? $"· {l.Destination.Name}" : "")</p>
+                        <p class="mono" style="font-weight:600; color:var(--forest); font-size:16px;">৳@l.Price</p>
+
+                        @if (Context.Session.GetString("Role") == "Tourist")
+                        {
+                            <a asp-controller="Tourist" asp-action="BookListing" asp-route-id="@l.Id" class="btn btn-primary" style="margin-top:10px;">Book Now</a>
+                        }
+                        else if (Context.Session.GetInt32("UserId") == null)
+                        {
+                            <a asp-controller="Account" asp-action="Login" class="btn btn-ghost" style="margin-top:10px;">Login to Book</a>
+                        }
+                        else
+                        {
+                            <span class="user-chip" style="display:block; margin-top:10px;">Only tourist accounts can book</span>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    </section>
+}
 <section id="facilities">
     <div class="wrap">
         <div class="section-head">

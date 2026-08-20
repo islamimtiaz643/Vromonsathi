@@ -10,9 +10,11 @@ namespace Vromonsathi.Models
         public int TouristUserId { get; set; }
         public User TouristUser { get; set; }
 
-        [Required]
-        public int ListingId { get; set; }
-        public Listing Listing { get; set; }
+        public int? ListingId { get; set; }
+        public Listing? Listing { get; set; }
+
+        public int? TourPackageId { get; set; }
+        public TourPackage? TourPackage { get; set; }
 
         public DateTime StartDate { get; set; }
         public DateTime? EndDate { get; set; }
@@ -21,7 +23,6 @@ namespace Vromonsathi.Models
 
         public decimal TotalPrice { get; set; }
 
-        // "Pending", "Confirmed", "Cancelled", "Completed"
         [MaxLength(20)]
         public string Status { get; set; } = "Pending";
 
