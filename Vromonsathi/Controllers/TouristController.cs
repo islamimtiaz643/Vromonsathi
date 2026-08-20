@@ -41,48 +41,49 @@ namespace Vromonsathi.Controllers
 
         // ---------- BOOKING ----------
         [HttpGet]
-        public async Task<IActionResult> BookListing(int id)
+        public async Task<IActionResult> BookPackage(int id)
         {
-            var listing = await _context.Listings
-                .Include(l => l.VendorProfile)
-                .FirstOrDefaultAsync(l => l.Id == id && l.IsActive);
+            var package = await _context.TourPackages
+                .Include(p => p.Destination)
+                .FirstOrDefaultAsync(p => p.Id == id && p.IsActive);
 
-            if (listing == null) return NotFound();
-            return View(listing);
+            if (package == null) return NotFound();
+            return View(package);
         }
 
         [HttpPost]
-        public async Task<IActionResult> BookListing(int listingId, DateTime startDate, DateTime? endDate, int numberOfPeople)
+        public async Task<IActionResult> BookPackage(int packageId, DateTime startDate, int numberOfPeople)
         {
-            var listing = await _context.Listings.FirstOrDefaultAsync(l => l.Id == listingId && l.IsActive);
-            if (listing == null) return NotFound();
+            var package = await _context.TourPackages.FirstOrDefaultAsync(p => p.Id == packageId && p.IsActive);
+            if (package == null) return NotFound();
 
             if (numberOfPeople < 1) numberOfPeople = 1;
 
             var booking = new Booking
             {
                 TouristUserId = CurrentUserId,
-                ListingId = listingId,
+                TourPackageId = packageId,
                 StartDate = startDate,
-                EndDate = endDate,
+                EndDate = startDate.AddDays(package.DurationDays),
                 NumberOfPeople = numberOfPeople,
-                TotalPrice = listing.Price * numberOfPeople,
+                TotalPrice = package.Price * numberOfPeople,
                 Status = "Pending"
             };
 
             _context.Bookings.Add(booking);
             await _context.SaveChangesAsync();
 
-            TempData["Message"] = "Booking request submitted. Waiting for vendor confirmation.";
+            TempData["Message"] = "Package booking request submitted.";
             return RedirectToAction("MyBookings");
         }
 
         // ---------- MY BOOKINGS ----------
+        
         public async Task<IActionResult> MyBookings()
         {
             var bookings = await _context.Bookings
-                .Include(b => b.Listing)
-                .ThenInclude(l => l.VendorProfile)
+                .Include(b => b.Listing).ThenInclude(l => l.VendorProfile)
+                .Include(b => b.TourPackage)
                 .Where(b => b.TouristUserId == CurrentUserId)
                 .OrderByDescending(b => b.CreatedAt)
                 .ToListAsync();

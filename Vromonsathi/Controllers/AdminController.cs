@@ -1,9 +1,9 @@
-﻿using Vromonsathi.Models;
+﻿using System.IO;
+using Vromonsathi.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Vromonsathi.Data;
 using Vromonsathi.Filters;
-using Vromonsathi.Models;
 
 namespace Vromonsathi.Controllers
 {
@@ -15,6 +15,26 @@ namespace Vromonsathi.Controllers
         public AdminController(ApplicationDbContext context)
         {
             _context = context;
+        }
+
+        private async Task<string> SaveUploadedImage(IFormFile file)
+        {
+            var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp" };
+            var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
+            if (!allowedExtensions.Contains(ext))
+                throw new InvalidOperationException("Only jpg, jpeg, png, webp images are allowed.");
+
+            var fileName = $"{Guid.NewGuid()}{ext}";
+            var uploadsPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads");
+            Directory.CreateDirectory(uploadsPath);
+            var fullPath = Path.Combine(uploadsPath, fileName);
+
+            using (var stream = new FileStream(fullPath, FileMode.Create))
+            {
+                await file.CopyToAsync(stream);
+            }
+
+            return "/uploads/" + fileName;
         }
 
         public async Task<IActionResult> Dashboard()
@@ -98,9 +118,15 @@ namespace Vromonsathi.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> CreateDestination(Destination model)
+        public async Task<IActionResult> CreateDestination(Destination model, IFormFile? imageFile)
         {
             if (!ModelState.IsValid) return View(model);
+
+            if (imageFile != null && imageFile.Length > 0)
+            {
+                model.ImageUrl = await SaveUploadedImage(imageFile);
+            }
+
             _context.Destinations.Add(model);
             await _context.SaveChangesAsync();
             TempData["Message"] = "Destination added.";
@@ -118,10 +144,17 @@ namespace Vromonsathi.Controllers
             ViewBag.Categories = Vromonsathi.Helpers.BangladeshData.Categories;
             return View(d);
         }
+
         [HttpPost]
-        public async Task<IActionResult> EditDestination(Destination model)
+        public async Task<IActionResult> EditDestination(Destination model, IFormFile? imageFile)
         {
             if (!ModelState.IsValid) return View(model);
+
+            if (imageFile != null && imageFile.Length > 0)
+            {
+                model.ImageUrl = await SaveUploadedImage(imageFile);
+            }
+
             _context.Destinations.Update(model);
             await _context.SaveChangesAsync();
             TempData["Message"] = "Destination updated.";
@@ -192,6 +225,7 @@ namespace Vromonsathi.Controllers
             }
             return RedirectToAction("Reviews");
         }
+
         // ---------- CHECKPOINTS ----------
         public async Task<IActionResult> Checkpoints(int destinationId)
         {
@@ -328,6 +362,106 @@ namespace Vromonsathi.Controllers
                 await _context.SaveChangesAsync();
             }
             return RedirectToAction("EmergencyContacts");
+        }
+
+        // ---------- TOUR PACKAGES ----------
+        public async Task<IActionResult> TourPackages()
+        {
+            var list = await _context.TourPackages.Include(p => p.Destination).OrderByDescending(p => p.CreatedAt).ToListAsync();
+            return View(list);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> CreateTourPackage()
+        {
+            ViewBag.Destinations = await _context.Destinations.OrderBy(d => d.Name).ToListAsync();
+            return View();
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> CreateTourPackage(TourPackage model, IFormFile? imageFile)
+        {
+            ModelState.Remove("Destination");
+            if (!ModelState.IsValid)
+            {
+                ViewBag.Destinations = await _context.Destinations.OrderBy(d => d.Name).ToListAsync();
+                return View(model);
+            }
+
+            if (imageFile != null && imageFile.Length > 0)
+            {
+                model.ImageUrl = await SaveUploadedImage(imageFile);
+            }
+
+            _context.TourPackages.Add(model);
+            await _context.SaveChangesAsync();
+            TempData["Message"] = "Tour package created.";
+            return RedirectToAction("TourPackages");
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> EditTourPackage(int id)
+        {
+            var p = await _context.TourPackages.FindAsync(id);
+            if (p == null) return NotFound();
+            ViewBag.Destinations = await _context.Destinations.OrderBy(d => d.Name).ToListAsync();
+            return View(p);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> EditTourPackage(TourPackage model, IFormFile? imageFile)
+        {
+            ModelState.Remove("Destination");
+            if (!ModelState.IsValid)
+            {
+                ViewBag.Destinations = await _context.Destinations.OrderBy(d => d.Name).ToListAsync();
+                return View(model);
+            }
+
+            if (imageFile != null && imageFile.Length > 0)
+            {
+                model.ImageUrl = await SaveUploadedImage(imageFile);
+            }
+
+            _context.TourPackages.Update(model);
+            await _context.SaveChangesAsync();
+            TempData["Message"] = "Tour package updated.";
+            return RedirectToAction("TourPackages");
+        }
+
+        public async Task<IActionResult> DeleteTourPackage(int id)
+        {
+            var p = await _context.TourPackages.FindAsync(id);
+            if (p != null)
+            {
+                _context.TourPackages.Remove(p);
+                await _context.SaveChangesAsync();
+            }
+            return RedirectToAction("TourPackages");
+        }
+
+        // ---------- PACKAGE BOOKINGS ----------
+        public async Task<IActionResult> PackageBookings()
+        {
+            var bookings = await _context.Bookings
+                .Include(b => b.TouristUser)
+                .Include(b => b.TourPackage)
+                .Where(b => b.TourPackageId != null)
+                .OrderByDescending(b => b.CreatedAt)
+                .ToListAsync();
+
+            return View(bookings);
+        }
+
+        public async Task<IActionResult> UpdatePackageBookingStatus(int id, string status)
+        {
+            var booking = await _context.Bookings.FirstOrDefaultAsync(b => b.Id == id && b.TourPackageId != null);
+            if (booking != null)
+            {
+                booking.Status = status;
+                await _context.SaveChangesAsync();
+            }
+            return RedirectToAction("PackageBookings");
         }
     }
 }

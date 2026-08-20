@@ -1,0 +1,24 @@
+﻿@model TourPackage
+@{
+    ViewData["Title"] = "Book " + Model.Title;
+}
+
+<div class="wrap" style="padding:40px 28px;">
+    <h2 style="margin-bottom:8px;">Book: @Model.Title</h2>
+    <p style="opacity:0.75; margin-bottom:16px;">@(Model.Destination?.Name ?? "Multi-destination") · @Model.DurationDays days · ৳@Model.Price.ToString("N0") per person</p>
+    <p style="margin-bottom:24px;">@Model.Description</p>
+
+    <form asp-action="BookPackage" method="post" style="max-width:480px;">
+        <input type="hidden" name="packageId" value="@Model.Id" />
+        <div class="field">
+            <label>Start Date</label>
+            <input type="date" name="startDate" required style="width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:8px;" />
+        </div>
+        <div class="field">
+            <label>Number of People</label>
+            <input type="number" name="numberOfPeople" value="1" min="1" style="width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:8px;" />
+        </div>
+        <button type="submit" class="btn btn-primary">Confirm Booking Request</button>
+        <a asp-controller="Home" asp-action="Index" class="btn btn-ghost">Cancel</a>
+    </form>
+</div>

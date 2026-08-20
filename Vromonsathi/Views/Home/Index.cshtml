@@ -226,7 +226,7 @@
     </section>
 }
 
-@if (Model.FeaturedListings.Count > 0)
+@if (Model.FeaturedPackages.Count > 0)
 {
     <section id="packages">
         <div class="wrap">
@@ -235,34 +235,42 @@
                     <span class="tag">Book directly</span>
                     <h2>Featured tour packages</h2>
                 </div>
-                <p>Real listings from approved vendors — hotels, guided tours and transport, ready to book now.</p>
+                <p>Complete, ready-to-book packages curated by Vromonsathi — pick one and lock in your trip.</p>
             </div>
 
             <div class="dest-grid">
-                @foreach (var l in Model.FeaturedListings)
+                @foreach (var p in Model.FeaturedPackages)
                 {
-                    <div class="fac-card">
-                        <h4>@l.Title <span class="badge badge-confirmed">@l.Category</span></h4>
-                        <p style="margin:6px 0; opacity:0.75;">by @l.VendorProfile.BusinessName @(l.Destination != null ? $"· {l.Destination.Name}" : "")</p>
-                        <p class="mono" style="font-weight:600; color:var(--forest); font-size:16px;">৳@l.Price</p>
-
-                        @if (Context.Session.GetString("Role") == "Tourist")
-                        {
-                            <a asp-controller="Tourist" asp-action="BookListing" asp-route-id="@l.Id" class="btn btn-primary" style="margin-top:10px;">Book Now</a>
-                        }
-                        else if (Context.Session.GetInt32("UserId") == null)
-                        {
-                            <a asp-controller="Account" asp-action="Login" class="btn btn-ghost" style="margin-top:10px;">Login to Book</a>
-                        }
-                        else
-                        {
-                            <span class="user-chip" style="display:block; margin-top:10px;">Only tourist accounts can book</span>
-                        }
+                    var bg = string.IsNullOrEmpty(p.ImageUrl) ? "background:linear-gradient(135deg,#1B4332,#0B2B20);" : $"background-image:url('{p.ImageUrl}');";
+                    <div class="dest-card">
+                        <div class="dest-photo" style="@bg"><span>@p.DurationDays days</span></div>
+                        <div class="dest-body">
+                            <span class="region">@(p.Destination?.Name ?? "Multi-destination")</span>
+                            <h3>@p.Title</h3>
+                            <p style="font-size:12.5px; opacity:0.75;">@p.Description</p>
+                            <div class="dest-meta">
+                                <div><span class="k">Price</span><span class="v">৳@p.Price.ToString("N0")</span></div>
+                                <div><span class="k">Duration</span><span class="v">@p.DurationDays days</span></div>
+                            </div>
+                            @if (Context.Session.GetString("Role") == "Tourist")
+                            {
+                                <a asp-controller="Tourist" asp-action="BookPackage" asp-route-id="@p.Id" class="btn btn-primary" style="margin-top:8px;">Book Now</a>
+                            }
+                            else if (Context.Session.GetInt32("UserId") == null)
+                            {
+                                <a asp-controller="Account" asp-action="Login" class="btn btn-ghost" style="margin-top:8px;">Login to Book</a>
+                            }
+                            else
+                            {
+                                <span class="user-chip" style="display:block; margin-top:8px;">Only tourist accounts can book</span>
+                            }
+                        </div>
                     </div>
                 }
             </div>
         </div>
     </section>
+
 }
 <section id="facilities">
     <div class="wrap">

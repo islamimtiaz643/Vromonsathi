@@ -1,0 +1,30 @@
+﻿@model List<TourPackage>
+@{
+    ViewData["Title"] = "Tour Packages";
+}
+
+<div class="d-flex justify-content-between mb-3">
+    <h2>Tour Packages</h2>
+    <a asp-action="CreateTourPackage" class="btn btn-success">+ Add Tour Package</a>
+</div>
+<div class="table-responsive">
+    <table class="table table-striped align-middle">
+        <thead><tr><th>Title</th><th>Destination</th><th>Duration</th><th>Price</th><th>Status</th><th>Action</th></tr></thead>
+        <tbody>
+            @foreach (var p in Model)
+            {
+                <tr>
+                    <td>@p.Title</td>
+                    <td>@(p.Destination?.Name ?? "—")</td>
+                    <td>@p.DurationDays days</td>
+                    <td>৳@p.Price</td>
+                    <td>@(p.IsActive ? "Active" : "Inactive")</td>
+                    <td>
+                        <a asp-action="EditTourPackage" asp-route-id="@p.Id" class="btn btn-sm btn-outline-primary">Edit</a>
+                        <a asp-action="DeleteTourPackage" asp-route-id="@p.Id" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete this package?');">Delete</a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

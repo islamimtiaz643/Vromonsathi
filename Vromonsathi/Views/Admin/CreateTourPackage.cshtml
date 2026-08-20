@@ -1,0 +1,35 @@
+﻿@model TourPackage
+@{
+    ViewData["Title"] = "Add Tour Package";
+}
+
+<h2 class="mb-4">Add Tour Package</h2>
+<form asp-action="CreateTourPackage" method="post" enctype="multipart/form-data">
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+    <div class="row g-3">
+        <div class="col-md-6"><label class="form-label">Title</label><input asp-for="Title" class="form-control" /></div>
+        <div class="col-md-3"><label class="form-label">Price (৳)</label><input asp-for="Price" class="form-control" /></div>
+        <div class="col-md-3"><label class="form-label">Duration (days)</label><input asp-for="DurationDays" class="form-control" /></div>
+        <div class="col-md-6">
+            <label class="form-label">Destination</label>
+            <select asp-for="DestinationId" class="form-select">
+                <option value="">-- Not tied to a specific destination --</option>
+                @foreach (var d in (List<Destination>)ViewBag.Destinations)
+                {
+                    <option value="@d.Id">@d.Name (@d.District)</option>
+                }
+            </select>
+        </div>
+        <div class="col-md-6">
+            <label class="form-label">Image URL (optional, ignored if you upload a file below)</label>
+            <input asp-for="ImageUrl" class="form-control" />
+        </div>
+        <div class="col-md-6">
+            <label class="form-label">Or Upload Image</label>
+            <input type="file" name="imageFile" class="form-control" accept=".jpg,.jpeg,.png,.webp" />
+        </div>
+        <div class="col-12"><label class="form-label">Description</label><textarea asp-for="Description" class="form-control" rows="4"></textarea></div>
+    </div>
+    <button type="submit" class="btn btn-success mt-3">Save</button>
+    <a asp-action="TourPackages" class="btn btn-secondary mt-3">Cancel</a>
+</form>

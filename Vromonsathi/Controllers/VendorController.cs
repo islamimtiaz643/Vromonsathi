@@ -32,7 +32,7 @@ namespace Vromonsathi.Controllers
             ViewBag.TotalListings = vendor.Listings.Count;
 
             var listingIds = vendor.Listings.Select(l => l.Id).ToList();
-            var bookings = await _context.Bookings.Where(b => listingIds.Contains(b.ListingId)).ToListAsync();
+            var bookings = await _context.Bookings.Where(b => b.ListingId != null && listingIds.Contains(b.ListingId.Value)).ToListAsync();
 
             ViewBag.TotalBookings = bookings.Count;
             ViewBag.PendingBookings = bookings.Count(b => b.Status == "Pending");
@@ -140,11 +140,11 @@ namespace Vromonsathi.Controllers
 
             var listingIds = vendor.Listings.Select(l => l.Id).ToList();
             var bookings = await _context.Bookings
-                .Include(b => b.TouristUser)
-                .Include(b => b.Listing)
-                .Where(b => listingIds.Contains(b.ListingId))
-                .OrderByDescending(b => b.CreatedAt)
-                .ToListAsync();
+     .Include(b => b.TouristUser)
+     .Include(b => b.Listing)
+     .Where(b => b.ListingId != null && listingIds.Contains(b.ListingId.Value))
+     .OrderByDescending(b => b.CreatedAt)
+     .ToListAsync();
 
             return View(bookings);
         }
@@ -154,7 +154,7 @@ namespace Vromonsathi.Controllers
             var vendor = await GetCurrentVendorProfile();
             var listingIds = vendor!.Listings.Select(l => l.Id).ToList();
 
-            var booking = await _context.Bookings.FirstOrDefaultAsync(b => b.Id == id && listingIds.Contains(b.ListingId));
+            var booking = await _context.Bookings.FirstOrDefaultAsync(b => b.Id == id && b.ListingId != null && listingIds.Contains(b.ListingId.Value));
             if (booking != null)
             {
                 booking.Status = status;

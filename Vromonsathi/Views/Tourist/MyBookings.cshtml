@@ -10,9 +10,11 @@
         <tbody>
             @foreach (var b in Model)
             {
+                var itemTitle = b.Listing?.Title ?? b.TourPackage?.Title ?? "—";
+                var itemSource = b.Listing != null ? b.Listing.VendorProfile.BusinessName : "Vromonsathi Package";
                 <tr>
-                    <td>@b.Listing.Title</td>
-                    <td>@b.Listing.VendorProfile.BusinessName</td>
+                    <td>@itemTitle</td>
+                    <td>@itemSource</td>
                     <td>@b.StartDate.ToString("dd MMM yyyy")</td>
                     <td>@b.NumberOfPeople</td>
                     <td>৳@b.TotalPrice</td>

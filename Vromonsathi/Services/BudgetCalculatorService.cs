@@ -45,7 +45,7 @@ namespace Vromonsathi.Services
             result.Breakdown.Add(new BudgetLineItem { Label = "Entry & permit fees", Amount = entryFee });
 
             var cheapestRoom = destination.Listings.Where(l => l.Category == "Room").OrderBy(l => l.Price).FirstOrDefault();
-            var cheapestGuide = destination.Listings.Where(l => l.Category == "TourPackage").OrderBy(l => l.Price).FirstOrDefault();
+            var cheapestGuide = destination.Listings.Where(l => l.Category == "OtherFacility").OrderBy(l => l.Price).FirstOrDefault();
             var cheapestTransport = destination.Listings.Where(l => l.Category == "TransportService").OrderBy(l => l.Price).FirstOrDefault();
 
             foreach (var key in request.SelectedFacilities.Distinct())
