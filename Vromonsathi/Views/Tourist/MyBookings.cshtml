@@ -18,7 +18,13 @@
                     <td>@b.StartDate.ToString("dd MMM yyyy")</td>
                     <td>@b.NumberOfPeople</td>
                     <td>৳@b.TotalPrice</td>
-                    <td><span class="badge bg-@(b.Status == "Confirmed" ? "success" : b.Status == "Cancelled" ? "danger" : b.Status == "Completed" ? "secondary" : "warning")">@b.Status</span></td>
+                    <td>
+                        <span class="badge bg-@(b.Status == "Confirmed" ? "success" : b.Status == "Cancelled" ? "danger" : b.Status == "Completed" ? "secondary" : "warning")">@b.Status</span>
+                        @if (b.Status == "Cancelled" && !string.IsNullOrEmpty(b.CancellationNote))
+                        {
+                            <div class="text-danger" style="font-size:11.5px; margin-top:4px; max-width:220px;">@b.CancellationNote</div>
+                        }
+                    </td>
                     <td>
                         @if (b.Status == "Pending")
                         {

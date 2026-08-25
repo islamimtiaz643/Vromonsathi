@@ -1,9 +1,9 @@
 ﻿using System.IO;
-using Vromonsathi.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Vromonsathi.Data;
 using Vromonsathi.Filters;
+using Vromonsathi.Models;
 
 namespace Vromonsathi.Controllers
 {
@@ -424,6 +424,20 @@ namespace Vromonsathi.Controllers
             }
 
             _context.TourPackages.Update(model);
+
+            var activeBookingsOnEdit = await _context.Bookings
+                .Where(b => b.TourPackageId == model.Id && b.Status != "Cancelled" && b.Status != "Completed")
+                .ToListAsync();
+
+            foreach (var booking in activeBookingsOnEdit)
+            {
+                Vromonsathi.Helpers.NotificationHelper.AddNotification(
+                    _context, booking.TouristUserId,
+                    "Package updated",
+                    $"'{model.Title}' was updated by the admin. Please review the latest details.",
+                    "/Tourist/MyBookings");
+            }
+
             await _context.SaveChangesAsync();
             TempData["Message"] = "Tour package updated.";
             return RedirectToAction("TourPackages");
@@ -432,11 +446,46 @@ namespace Vromonsathi.Controllers
         public async Task<IActionResult> DeleteTourPackage(int id)
         {
             var p = await _context.TourPackages.FindAsync(id);
-            if (p != null)
+            if (p == null) return RedirectToAction("TourPackages");
+
+            var activeBookings = await _context.Bookings
+                .Where(b => b.TourPackageId == id && b.Status != "Cancelled" && b.Status != "Completed")
+                .ToListAsync();
+
+            bool hasAnyBookingHistory = await _context.Bookings.AnyAsync(b => b.TourPackageId == id);
+
+            if (activeBookings.Any())
             {
-                _context.TourPackages.Remove(p);
+                foreach (var booking in activeBookings)
+                {
+                    var note = $"This package ('{p.Title}') was removed by the admin. Your payment will be refunded to your original payment method within 3-5 business days.";
+                    booking.Status = "Cancelled";
+                    booking.CancellationNote = note;
+
+                    Vromonsathi.Helpers.NotificationHelper.AddNotification(
+                        _context, booking.TouristUserId,
+                        "Booking cancelled — refund pending",
+                        note,
+                        "/Tourist/MyBookings");
+                }
+
+                p.IsActive = false;
                 await _context.SaveChangesAsync();
+                TempData["Message"] = $"Package removed. {activeBookings.Count} affected booking(s) were cancelled and marked for refund; the package was deactivated instead of deleted since it has booking history.";
+                return RedirectToAction("TourPackages");
             }
+
+            if (hasAnyBookingHistory)
+            {
+                p.IsActive = false;
+                await _context.SaveChangesAsync();
+                TempData["Message"] = "This package has past booking history, so it can't be permanently deleted. It has been deactivated.";
+                return RedirectToAction("TourPackages");
+            }
+
+            _context.TourPackages.Remove(p);
+            await _context.SaveChangesAsync();
+            TempData["Message"] = "Tour package deleted.";
             return RedirectToAction("TourPackages");
         }
 
@@ -455,10 +504,20 @@ namespace Vromonsathi.Controllers
 
         public async Task<IActionResult> UpdatePackageBookingStatus(int id, string status)
         {
-            var booking = await _context.Bookings.FirstOrDefaultAsync(b => b.Id == id && b.TourPackageId != null);
+            var booking = await _context.Bookings
+                .Include(b => b.TourPackage)
+                .FirstOrDefaultAsync(b => b.Id == id && b.TourPackageId != null);
+
             if (booking != null)
             {
                 booking.Status = status;
+
+                Vromonsathi.Helpers.NotificationHelper.AddNotification(
+                    _context, booking.TouristUserId,
+                    $"Package booking {status.ToLower()}",
+                    $"Your booking for '{booking.TourPackage!.Title}' is now {status}.",
+                    "/Tourist/MyBookings");
+
                 await _context.SaveChangesAsync();
             }
             return RedirectToAction("PackageBookings");

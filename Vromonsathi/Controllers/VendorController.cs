@@ -32,7 +32,9 @@ namespace Vromonsathi.Controllers
             ViewBag.TotalListings = vendor.Listings.Count;
 
             var listingIds = vendor.Listings.Select(l => l.Id).ToList();
-            var bookings = await _context.Bookings.Where(b => b.ListingId != null && listingIds.Contains(b.ListingId.Value)).ToListAsync();
+            var bookings = await _context.Bookings
+                .Where(b => b.ListingId != null && listingIds.Contains(b.ListingId.Value))
+                .ToListAsync();
 
             ViewBag.TotalBookings = bookings.Count;
             ViewBag.PendingBookings = bookings.Count(b => b.Status == "Pending");
@@ -105,7 +107,12 @@ namespace Vromonsathi.Controllers
 
             ModelState.Remove("VendorProfileId");
             ModelState.Remove("VendorProfile");
-            if (!ModelState.IsValid) return View(model);
+            ModelState.Remove("Destination");
+            if (!ModelState.IsValid)
+            {
+                ViewBag.Destinations = await _context.Destinations.OrderBy(d => d.Name).ToListAsync();
+                return View(model);
+            }
 
             existing.Title = model.Title;
             existing.Description = model.Description;
@@ -114,6 +121,19 @@ namespace Vromonsathi.Controllers
             existing.ImageUrl = model.ImageUrl;
             existing.IsActive = model.IsActive;
             existing.DestinationId = model.DestinationId;
+
+            var activeBookingsOnEdit = await _context.Bookings
+                .Where(b => b.ListingId == existing.Id && b.Status != "Cancelled" && b.Status != "Completed")
+                .ToListAsync();
+
+            foreach (var booking in activeBookingsOnEdit)
+            {
+                Vromonsathi.Helpers.NotificationHelper.AddNotification(
+                    _context, booking.TouristUserId,
+                    "Listing updated",
+                    $"'{existing.Title}' was updated by the vendor. Please review the latest details.",
+                    "/Tourist/MyBookings");
+            }
 
             await _context.SaveChangesAsync();
             TempData["Message"] = "Listing updated.";
@@ -124,11 +144,55 @@ namespace Vromonsathi.Controllers
         {
             var vendor = await GetCurrentVendorProfile();
             var listing = await _context.Listings.FirstOrDefaultAsync(l => l.Id == id && l.VendorProfileId == vendor!.Id);
-            if (listing != null)
+            if (listing == null) return RedirectToAction("Listings");
+
+            var admins = await _context.Users.Where(u => u.Role == "Admin").ToListAsync();
+            foreach (var admin in admins)
             {
-                _context.Listings.Remove(listing);
-                await _context.SaveChangesAsync();
+                Vromonsathi.Helpers.NotificationHelper.AddNotification(
+                    _context, admin.Id,
+                    "Vendor removed a listing",
+                    $"{vendor.BusinessName} removed listing '{listing.Title}'.",
+                    "/Admin/Vendors");
             }
+
+            var activeBookings = await _context.Bookings
+                .Where(b => b.ListingId == id && b.Status != "Cancelled" && b.Status != "Completed")
+                .ToListAsync();
+
+            bool hasAnyBookingHistory = await _context.Bookings.AnyAsync(b => b.ListingId == id);
+
+            if (activeBookings.Any())
+            {
+                foreach (var booking in activeBookings)
+                {
+                    var note = $"'{listing.Title}' was removed by the vendor. Your payment will be refunded to your original payment method within 3-5 business days.";
+                    booking.Status = "Cancelled";
+                    booking.CancellationNote = note;
+
+                    Vromonsathi.Helpers.NotificationHelper.AddNotification(
+                        _context, booking.TouristUserId,
+                        "Booking cancelled — refund pending",
+                        note,
+                        "/Tourist/MyBookings");
+                }
+
+                listing.IsActive = false;
+                await _context.SaveChangesAsync();
+                TempData["Message"] = $"Listing removed. {activeBookings.Count} affected booking(s) were cancelled and marked for refund.";
+                return RedirectToAction("Listings");
+            }
+
+            if (hasAnyBookingHistory)
+            {
+                listing.IsActive = false;
+                await _context.SaveChangesAsync();
+                TempData["Message"] = "This listing has past booking history and was deactivated instead of deleted.";
+                return RedirectToAction("Listings");
+            }
+
+            _context.Listings.Remove(listing);
+            await _context.SaveChangesAsync();
             return RedirectToAction("Listings");
         }
 
@@ -140,11 +204,11 @@ namespace Vromonsathi.Controllers
 
             var listingIds = vendor.Listings.Select(l => l.Id).ToList();
             var bookings = await _context.Bookings
-     .Include(b => b.TouristUser)
-     .Include(b => b.Listing)
-     .Where(b => b.ListingId != null && listingIds.Contains(b.ListingId.Value))
-     .OrderByDescending(b => b.CreatedAt)
-     .ToListAsync();
+                .Include(b => b.TouristUser)
+                .Include(b => b.Listing)
+                .Where(b => b.ListingId != null && listingIds.Contains(b.ListingId.Value))
+                .OrderByDescending(b => b.CreatedAt)
+                .ToListAsync();
 
             return View(bookings);
         }
@@ -154,10 +218,20 @@ namespace Vromonsathi.Controllers
             var vendor = await GetCurrentVendorProfile();
             var listingIds = vendor!.Listings.Select(l => l.Id).ToList();
 
-            var booking = await _context.Bookings.FirstOrDefaultAsync(b => b.Id == id && b.ListingId != null && listingIds.Contains(b.ListingId.Value));
+            var booking = await _context.Bookings
+                .Include(b => b.Listing)
+                .FirstOrDefaultAsync(b => b.Id == id && b.ListingId != null && listingIds.Contains(b.ListingId.Value));
+
             if (booking != null)
             {
                 booking.Status = status;
+
+                Vromonsathi.Helpers.NotificationHelper.AddNotification(
+                    _context, booking.TouristUserId,
+                    $"Booking {status.ToLower()}",
+                    $"Your booking for '{booking.Listing!.Title}' is now {status}.",
+                    "/Tourist/MyBookings");
+
                 await _context.SaveChangesAsync();
             }
             return RedirectToAction("Bookings");

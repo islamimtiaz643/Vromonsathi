@@ -1,0 +1,39 @@
+﻿@model List<Notification>
+@{
+    ViewData["Title"] = "Notifications";
+}
+
+<div class="wrap" style="padding:40px 28px;">
+    <div class="section-head">
+        <div>
+            <span class="tag">Activity</span>
+            <h2>Notifications</h2>
+        </div>
+        @if (Model.Any(n => !n.IsRead))
+        {
+            <a asp-action="MarkAllRead" class="btn btn-ghost">Mark all as read</a>
+        }
+    </div>
+
+    <div style="display:flex; flex-direction:column; gap:10px;">
+        @foreach (var n in Model)
+        {
+            <a asp-action="MarkRead" asp-route-id="@n.Id" style="text-decoration:none;">
+                <div class="fac-card" style="@(n.IsRead ? "opacity:0.6;" : "border-color:var(--forest); background:#F0F4EE;")">
+                    <div style="display:flex; justify-content:space-between; gap:10px;">
+                        <h4 style="color:var(--ink);">@n.Title @if (!n.IsRead) {
+                            <span class="badge badge-confirmed" style="margin-left:6px;">New</span>
+                        }
+                    </h4>
+                    <span class="mono" style="font-size:11px; opacity:0.6; white-space:nowrap;">@n.CreatedAt.ToString("dd MMM, h:mm tt")</span>
+                </div>
+                <p style="margin-top:6px;">@n.Message</p>
+            </div>
+        </a>
+    }
+    @if (!Model.Any())
+    {
+        <p style="opacity:0.7;">No notifications yet.</p>
+    }
+</div>
+</div>

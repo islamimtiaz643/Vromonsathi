@@ -7,6 +7,22 @@
     <span class="tag">Traveler panel</span>
     <h2 style="margin-bottom:24px;">My Dashboard</h2>
 
+    @{
+        var refundNotices = ViewBag.RefundNotices as List<Booking>;
+    }
+    @if (refundNotices != null && refundNotices.Count > 0)
+    {
+        <div class="alert-box" style="border-color:var(--red); background:#FBEAE8;">
+            <strong>@refundNotices.Count booking(s) cancelled by admin — refund pending.</strong>
+            <div style="margin-top:6px; font-size:12.5px;">
+                @foreach (var rn in refundNotices)
+                {
+                    <div style="margin-top:4px;">@rn.CancellationNote</div>
+                }
+            </div>
+        </div>
+    }
+
     <div class="stat-grid">
         <div class="stat-card"><div class="label">Total Bookings</div><div class="value">@ViewBag.TotalBookings</div></div>
         <div class="stat-card"><div class="label">Pending</div><div class="value">@ViewBag.PendingBookings</div></div>
@@ -29,11 +45,18 @@
                 @foreach (var b in Model)
                 {
                     var badgeClass = b.Status switch { "Confirmed" => "badge-confirmed", "Cancelled" => "badge-cancelled", "Completed" => "badge-completed", _ => "badge-pending" };
+                    var itemTitle = b.Listing?.Title ?? b.TourPackage?.Title ?? "—";
                     <tr>
-                        <td>@b.Listing.Title</td>
+                        <td>@itemTitle</td>
                         <td>@b.StartDate.ToString("dd MMM yyyy")</td>
                         <td class="num">৳@b.TotalPrice</td>
-                        <td><span class="badge @badgeClass">@b.Status</span></td>
+                        <td>
+                            <span class="badge @badgeClass">@b.Status</span>
+                            @if (b.Status == "Cancelled" && !string.IsNullOrEmpty(b.CancellationNote))
+                            {
+                                <div style="font-size:11px; color:var(--red); margin-top:4px;">@b.CancellationNote</div>
+                            }
+                        </td>
                     </tr>
                 }
             </tbody>

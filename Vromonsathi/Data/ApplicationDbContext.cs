@@ -21,6 +21,7 @@ namespace Vromonsathi.Data
         public DbSet<Facility> Facilities { get; set; }
         public DbSet<EmergencyContact> EmergencyContacts { get; set; }
         public DbSet<TourPackage> TourPackages { get; set; }
+        public DbSet<Notification> Notifications { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

@@ -24,17 +24,19 @@ namespace Vromonsathi.Controllers
                 .Where(b => b.TouristUserId == CurrentUserId)
                 .ToListAsync();
 
+            ViewBag.RefundNotices = bookings.Where(b => b.Status == "Cancelled" && b.CancellationNote != null).ToList();
             ViewBag.TotalBookings = bookings.Count;
             ViewBag.PendingBookings = bookings.Count(b => b.Status == "Pending");
             ViewBag.ConfirmedBookings = bookings.Count(b => b.Status == "Confirmed");
             ViewBag.CompletedBookings = bookings.Count(b => b.Status == "Completed");
 
             var recentBookings = await _context.Bookings
-                .Include(b => b.Listing)
-                .Where(b => b.TouristUserId == CurrentUserId)
-                .OrderByDescending(b => b.CreatedAt)
-                .Take(5)
-                .ToListAsync();
+    .Include(b => b.Listing)
+    .Include(b => b.TourPackage)
+    .Where(b => b.TouristUserId == CurrentUserId)
+    .OrderByDescending(b => b.CreatedAt)
+    .Take(5)
+    .ToListAsync();
 
             return View(recentBookings);
         }
@@ -52,33 +54,42 @@ namespace Vromonsathi.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> BookPackage(int packageId, DateTime startDate, int numberOfPeople)
+        public async Task<IActionResult> BookListing(int listingId, DateTime startDate, DateTime? endDate, int numberOfPeople)
         {
-            var package = await _context.TourPackages.FirstOrDefaultAsync(p => p.Id == packageId && p.IsActive);
-            if (package == null) return NotFound();
+            var listing = await _context.Listings
+                .Include(l => l.VendorProfile)
+                .FirstOrDefaultAsync(l => l.Id == listingId && l.IsActive);
+            if (listing == null) return NotFound();
 
             if (numberOfPeople < 1) numberOfPeople = 1;
 
             var booking = new Booking
             {
                 TouristUserId = CurrentUserId,
-                TourPackageId = packageId,
+                ListingId = listingId,
                 StartDate = startDate,
-                EndDate = startDate.AddDays(package.DurationDays),
+                EndDate = endDate,
                 NumberOfPeople = numberOfPeople,
-                TotalPrice = package.Price * numberOfPeople,
+                TotalPrice = listing.Price * numberOfPeople,
                 Status = "Pending"
             };
 
             _context.Bookings.Add(booking);
+
+            Vromonsathi.Helpers.NotificationHelper.AddNotification(
+                _context, listing.VendorProfile.UserId,
+                "New booking request",
+                $"{HttpContext.Session.GetString("FullName")} requested to book '{listing.Title}'.",
+                "/Vendor/Bookings");
+
             await _context.SaveChangesAsync();
 
-            TempData["Message"] = "Package booking request submitted.";
+            TempData["Message"] = "Booking request submitted. Waiting for vendor confirmation.";
             return RedirectToAction("MyBookings");
         }
 
         // ---------- MY BOOKINGS ----------
-        
+
         public async Task<IActionResult> MyBookings()
         {
             var bookings = await _context.Bookings

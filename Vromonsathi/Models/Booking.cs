@@ -4,7 +4,7 @@ namespace Vromonsathi.Models
 {
     public class Booking
     {
-        public int Id { get; set; }
+        public int Id { get; set; }[MaxLength(20)]
 
         [Required]
         public int TouristUserId { get; set; }
@@ -25,6 +25,8 @@ namespace Vromonsathi.Models
 
         [MaxLength(20)]
         public string Status { get; set; } = "Pending";
+
+        public string? CancellationNote { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.Now;
     }
