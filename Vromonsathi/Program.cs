@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Vromonsathi.Data;
+AppContext.SetSwitch("Switch.Microsoft.Data.SqlClient.UseManagedNetworkingOnWindows", true);
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -25,11 +26,7 @@ builder.Services.AddScoped<Vromonsathi.Services.IBudgetCalculatorService, Vromon
 
 var app = builder.Build();
 
-if (!app.Environment.IsDevelopment())
-{
-    app.UseExceptionHandler("/Home/Error");
-    app.UseHsts();
-}
+app.UseDeveloperExceptionPage();
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
@@ -44,6 +41,9 @@ app.MapControllerRoute(
     pattern: "{controller=Home}/{action=Index}/{id?}");
 
 // Seed default Admin account + sample data
+// TEMP: entire block disabled to isolate whether Microsoft.Data.SqlClient loading
+// itself is the problem on Somee, or just the DB connection at migrate/query time.
+
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -217,5 +217,6 @@ using (var scope = app.Services.CreateScope())
         context.SaveChanges();
     }
 }
+
 
 app.Run();
