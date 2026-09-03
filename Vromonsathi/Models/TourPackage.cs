@@ -18,6 +18,9 @@ namespace Vromonsathi.Models
         public decimal Price { get; set; }
 
         public int DurationDays { get; set; } = 3;
+        
+
+        public int MaxGroupSize { get; set; } = 15;
 
         public string? ImageUrl { get; set; }
 
@@ -25,6 +28,12 @@ namespace Vromonsathi.Models
 
         public DateTime CreatedAt { get; set; } = DateTime.Now;
 
+       
+     
+       
         public ICollection<Booking> Bookings { get; set; } = new List<Booking>();
+        public ICollection<PackageLineItem> LineItems { get; set; } = new List<PackageLineItem>();
+        public ICollection<VendorPackageOffer> VendorOffers { get; set; } = new List<VendorPackageOffer>();
     }
+
 }

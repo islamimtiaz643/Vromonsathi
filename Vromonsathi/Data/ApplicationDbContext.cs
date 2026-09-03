@@ -22,6 +22,10 @@ namespace Vromonsathi.Data
         public DbSet<EmergencyContact> EmergencyContacts { get; set; }
         public DbSet<TourPackage> TourPackages { get; set; }
         public DbSet<Notification> Notifications { get; set; }
+        
+        public DbSet<PackageLineItem> PackageLineItems { get; set; }
+        public DbSet<VendorPackageOffer> VendorPackageOffers { get; set; }
+        public DbSet<BookingAddOn> BookingAddOns { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -102,6 +106,35 @@ namespace Vromonsathi.Data
                 .WithMany(d => d.Listings)
                 .HasForeignKey(l => l.DestinationId)
                 .OnDelete(DeleteBehavior.SetNull);
+            modelBuilder.Entity<PackageLineItem>()
+    .HasOne(l => l.TourPackage)
+    .WithMany(p => p.LineItems)
+    .HasForeignKey(l => l.TourPackageId)
+    .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<VendorPackageOffer>()
+                .HasOne(o => o.TourPackage)
+                .WithMany(p => p.VendorOffers)
+                .HasForeignKey(o => o.TourPackageId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<VendorPackageOffer>()
+                .HasOne(o => o.VendorProfile)
+                .WithMany()
+                .HasForeignKey(o => o.VendorProfileId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<BookingAddOn>()
+                .HasOne(a => a.Booking)
+                .WithMany(b => b.AddOns)
+                .HasForeignKey(a => a.BookingId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<BookingAddOn>()
+                .HasOne(a => a.VendorPackageOffer)
+                .WithMany(o => o.BookingAddOns)
+                .HasForeignKey(a => a.VendorPackageOfferId)
+                .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }

@@ -4,14 +4,11 @@ AppContext.SetSwitch("Switch.Microsoft.Data.SqlClient.UseManagedNetworkingOnWind
 
 var builder = WebApplication.CreateBuilder(args);
 
-// MVC
 builder.Services.AddControllersWithViews();
 
-// Database
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// Session (needed for manual authentication)
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession(options =>
 {
@@ -20,29 +17,28 @@ builder.Services.AddSession(options =>
     options.Cookie.IsEssential = true;
 });
 
-// HttpContextAccessor so we can read session from anywhere (helpers, views)
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<Vromonsathi.Services.IBudgetCalculatorService, Vromonsathi.Services.BudgetCalculatorService>();
 
 var app = builder.Build();
 
-app.UseDeveloperExceptionPage();
+if (!app.Environment.IsDevelopment())
+{
+    app.UseExceptionHandler("/Home/Error");
+    app.UseHsts();
+}
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.UseRouting();
 
-app.UseSession();          // must be before UseAuthorization / MapControllerRoute
+app.UseSession();
 app.UseAuthorization();
 
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
-
-// Seed default Admin account + sample data
-// TEMP: entire block disabled to isolate whether Microsoft.Data.SqlClient loading
-// itself is the problem on Somee, or just the DB connection at migrate/query time.
 
 using (var scope = app.Services.CreateScope())
 {
@@ -86,14 +82,14 @@ using (var scope = app.Services.CreateScope())
             RequiresConvoyEscort = false,
             IsApproved = true,
             Checkpoints = new List<Vromonsathi.Models.Checkpoint>
-{
+            {
                 new Vromonsathi.Models.Checkpoint { Type = Vromonsathi.Models.CheckpointType.Army, Name = "Army Camp - Bandarban Entry", SequenceOrder = 1, DistanceFromStartKm = 4, Notes = "ID registration required" },
                 new Vromonsathi.Models.Checkpoint { Type = Vromonsathi.Models.CheckpointType.BGB, Name = "BGB Camp - Ruma Road", SequenceOrder = 2, DistanceFromStartKm = 14, Notes = "Group manifest checked" },
                 new Vromonsathi.Models.Checkpoint { Type = Vromonsathi.Models.CheckpointType.Police, Name = "Police Check - Nilgiri Road", SequenceOrder = 3, DistanceFromStartKm = 22 },
                 new Vromonsathi.Models.Checkpoint { Type = Vromonsathi.Models.CheckpointType.Army, Name = "Army Camp - Nilgiri", SequenceOrder = 4, DistanceFromStartKm = 27, Notes = "Final checkpoint before viewpoint" }
             },
             EmergencyContacts = new List<Vromonsathi.Models.EmergencyContact>
-{
+            {
                 new Vromonsathi.Models.EmergencyContact { Type = Vromonsathi.Models.EmergencyContactType.BGB, Name = "Nearest BGB Camp", Phone = "01769-000000" },
                 new Vromonsathi.Models.EmergencyContact { Type = Vromonsathi.Models.EmergencyContactType.Hospital, Name = "Bandarban Sadar Hospital", Phone = "01711-000000" }
             }
@@ -116,14 +112,14 @@ using (var scope = app.Services.CreateScope())
             RequiresConvoyEscort = true,
             IsApproved = true,
             Checkpoints = new List<Vromonsathi.Models.Checkpoint>
-{
+            {
                 new Vromonsathi.Models.Checkpoint { Type = Vromonsathi.Models.CheckpointType.BGB, Name = "BGB - Dighinala", SequenceOrder = 1, DistanceFromStartKm = 20, Notes = "Convoy assembly point" },
                 new Vromonsathi.Models.Checkpoint { Type = Vromonsathi.Models.CheckpointType.Army, Name = "Army - Baghaihat", SequenceOrder = 2, DistanceFromStartKm = 38, Notes = "Convoy departure time posted" },
                 new Vromonsathi.Models.Checkpoint { Type = Vromonsathi.Models.CheckpointType.BGB, Name = "BGB - Machalong", SequenceOrder = 3, DistanceFromStartKm = 52 },
                 new Vromonsathi.Models.Checkpoint { Type = Vromonsathi.Models.CheckpointType.Police, Name = "Police - Baghaihat Rd", SequenceOrder = 4, DistanceFromStartKm = 60 }
             },
             EmergencyContacts = new List<Vromonsathi.Models.EmergencyContact>
-{
+            {
                 new Vromonsathi.Models.EmergencyContact { Type = Vromonsathi.Models.EmergencyContactType.Army, Name = "Baghaihat Army Camp", Phone = "01769-111111" }
             }
         };
@@ -144,7 +140,7 @@ using (var scope = app.Services.CreateScope())
             NearestViewpointDistanceKm = 42,
             IsApproved = true,
             Checkpoints = new List<Vromonsathi.Models.Checkpoint>
-{
+            {
                 new Vromonsathi.Models.Checkpoint { Type = Vromonsathi.Models.CheckpointType.Police, Name = "Police Outpost - Mongla", SequenceOrder = 1, DistanceFromStartKm = 8 }
             }
         };
@@ -164,7 +160,7 @@ using (var scope = app.Services.CreateScope())
             NearestViewpointDistanceKm = 18,
             IsApproved = true,
             Checkpoints = new List<Vromonsathi.Models.Checkpoint>
-{
+            {
                 new Vromonsathi.Models.Checkpoint { Type = Vromonsathi.Models.CheckpointType.Police, Name = "Tourist Police - Marine Drive", SequenceOrder = 1, DistanceFromStartKm = 6 },
                 new Vromonsathi.Models.Checkpoint { Type = Vromonsathi.Models.CheckpointType.Police, Name = "Tourist Police - Himchari", SequenceOrder = 2, DistanceFromStartKm = 18 }
             }
@@ -186,7 +182,7 @@ using (var scope = app.Services.CreateScope())
             NearestViewpointDistanceKm = 62,
             IsApproved = true,
             Checkpoints = new List<Vromonsathi.Models.Checkpoint>
-{
+            {
                 new Vromonsathi.Models.Checkpoint { Type = Vromonsathi.Models.CheckpointType.BGB, Name = "BGB Border Post - Jaflong", SequenceOrder = 1, DistanceFromStartKm = 62 }
             }
         };
@@ -217,6 +213,5 @@ using (var scope = app.Services.CreateScope())
         context.SaveChanges();
     }
 }
-
 
 app.Run();

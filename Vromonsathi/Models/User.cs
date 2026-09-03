@@ -25,7 +25,10 @@ namespace Vromonsathi.Models
         [Required, MaxLength(20)]
         public string Role { get; set; }
 
+        
         public bool IsActive { get; set; } = true;
+
+        public decimal WalletBalance { get; set; } = 0;
 
         public DateTime CreatedAt { get; set; } = DateTime.Now;
 
