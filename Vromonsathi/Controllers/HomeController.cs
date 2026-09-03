@@ -50,12 +50,20 @@ namespace Vromonsathi.Controllers
     .Take(3)
     .ToListAsync();
 
-            var featuredPackages = await _context.TourPackages
-    .Include(p => p.Destination)
-    .Where(p => p.IsActive)
-    .OrderByDescending(p => p.CreatedAt)
-    .Take(6)
-    .ToListAsync();
+            var featuredPackagesRaw = await _context.TourPackages
+     .Include(p => p.Destination)
+     .Where(p => p.IsActive)
+     .OrderByDescending(p => p.CreatedAt)
+     .Take(6)
+     .ToListAsync();
+
+            var featuredPackages = new List<Vromonsathi.Models.TourPackage>();
+            foreach (var pkg in featuredPackagesRaw)
+            {
+                var booked = await Vromonsathi.Helpers.BookingHelper.GetBookedSlotsAsync(_context, pkg.Id);
+                pkg.SlotsRemainingComputed = Math.Max(pkg.MaxGroupSize - booked, 0);
+                featuredPackages.Add(pkg);
+            }
 
             var vm = new HomeIndexViewModel
             {

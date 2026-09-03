@@ -22,6 +22,7 @@
                     <td>
                         @if (b.Status == "Pending")
                         {
+                            <a asp-action="EditBookingAddOns" asp-route-bookingId="@b.Id" class="btn btn-sm btn-outline-primary">Edit</a>
                             <a asp-action="UpdatePackageBookingStatus" asp-route-id="@b.Id" asp-route-status="Confirmed" class="btn btn-sm btn-success">Confirm</a>
                             <a asp-action="UpdatePackageBookingStatus" asp-route-id="@b.Id" asp-route-status="Cancelled" class="btn btn-sm btn-danger">Cancel</a>
                         }

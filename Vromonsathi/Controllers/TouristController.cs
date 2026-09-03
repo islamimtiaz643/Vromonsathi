@@ -19,7 +19,9 @@ namespace Vromonsathi.Controllers
         private int CurrentUserId => HttpContext.Session.GetInt32("UserId")!.Value;
 
         public async Task<IActionResult> Dashboard()
+
         {
+
             var bookings = await _context.Bookings
                 .Where(b => b.TouristUserId == CurrentUserId)
                 .ToListAsync();
@@ -43,28 +45,191 @@ namespace Vromonsathi.Controllers
 
             return View(recentBookings);
         }
-
-        // ---------- BOOKING ----------
-        [HttpGet]
-        public async Task<IActionResult> BookPackage(int id)
+        public async Task<IActionResult> MyWallet()
         {
-            var package = await _context.TourPackages
-                .Include(p => p.Destination)
-                .Include(p => p.LineItems)
-                .Include(p => p.VendorOffers.Where(o => o.Status == "Approved" && o.IsActive))
-                .ThenInclude(o => o.VendorProfile)
-                .FirstOrDefaultAsync(p => p.Id == id && p.IsActive);
-
-            if (package == null) return NotFound();
-
             var user = await _context.Users.FindAsync(CurrentUserId);
             ViewBag.WalletBalance = user!.WalletBalance;
 
-            var mandatoryTotal = package.LineItems.Where(l => l.IsMandatory).Sum(l => l.Cost);
-            ViewBag.MandatoryTotal = mandatoryTotal;
-            ViewBag.FlexibleBudget = package.Price - mandatoryTotal;
+            var history = await _context.Bookings
+                .Include(b => b.TourPackage)
+                .Include(b => b.Listing)
+                .Where(b => b.TouristUserId == CurrentUserId && (b.WalletCreditEarned > 0 || b.WalletCreditUsed > 0))
+                .OrderByDescending(b => b.CreatedAt)
+                .ToListAsync();
 
-            return View(package);
+            return View(history);
+        }
+
+        // ---------- BOOKING ----------
+        [HttpGet]
+        public async Task<IActionResult> RequestEdit(int bookingId)
+        {
+            var booking = await _context.Bookings
+                .Include(b => b.TourPackage).ThenInclude(p => p!.VendorOffers).ThenInclude(o => o.VendorProfile)
+                .Include(b => b.AddOns)
+                .FirstOrDefaultAsync(b => b.Id == bookingId && b.TouristUserId == CurrentUserId);
+
+            if (booking == null || booking.TourPackageId == null) return NotFound();
+
+            var alreadyChosenIds = booking.AddOns.Select(a => a.VendorPackageOfferId).ToHashSet();
+            ViewBag.AvailableOffers = booking.TourPackage!.VendorOffers
+                .Where(o => o.Status == "Approved" && o.IsActive && !alreadyChosenIds.Contains(o.Id))
+                .ToList();
+
+            return View(booking);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> RequestEdit(int bookingId, int[]? requestedOfferIds, string? note)
+        {
+            var booking = await _context.Bookings
+                .Include(b => b.TourPackage)
+                .Include(b => b.TouristUser)
+                .FirstOrDefaultAsync(b => b.Id == bookingId && b.TouristUserId == CurrentUserId);
+
+            if (booking == null) return NotFound();
+
+            var offerTitles = "";
+            if (requestedOfferIds != null && requestedOfferIds.Length > 0)
+            {
+                var offers = await _context.VendorPackageOffers
+                    .Where(o => requestedOfferIds.Contains(o.Id))
+                    .ToListAsync();
+                offerTitles = string.Join(", ", offers.Select(o => o.Title));
+            }
+
+            booking.EditRequested = true;
+            booking.EditRequestNote = string.IsNullOrWhiteSpace(offerTitles)
+                ? note
+                : $"Requested add-ons: {offerTitles}. {note}".Trim();
+
+            var admins = await _context.Users.Where(u => u.Role == "Admin").ToListAsync();
+            foreach (var admin in admins)
+            {
+                Vromonsathi.Helpers.NotificationHelper.AddNotification(
+                    _context, admin.Id,
+                    "Booking edit requested",
+                    $"{booking.TouristUser!.FullName} wants to add facilities to their '{booking.TourPackage!.Title}' booking.",
+                    "/Admin/PackageBookings");
+            }
+
+            await _context.SaveChangesAsync();
+            TempData["Message"] = "Edit request sent to admin. You'll be notified once reviewed.";
+            return RedirectToAction("MyBookings");
+        }
+        [HttpGet]
+        public async Task<IActionResult> PayAdvance(int bookingId)
+        {
+            var booking = await _context.Bookings
+                .Include(b => b.TourPackage)
+                .FirstOrDefaultAsync(b => b.Id == bookingId && b.TouristUserId == CurrentUserId);
+
+            if (booking == null) return NotFound();
+            if (booking.AdvancePaid)
+            {
+                TempData["Message"] = "Advance already paid for this booking.";
+                return RedirectToAction("MyBookings");
+            }
+
+            return View(booking);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> PayAdvance(Vromonsathi.ViewModels.AdvancePaymentViewModel model)
+        {
+            var booking = await _context.Bookings
+                .Include(b => b.TourPackage)
+                .Include(b => b.TouristUser)
+                .FirstOrDefaultAsync(b => b.Id == model.BookingId && b.TouristUserId == CurrentUserId);
+
+            if (booking == null) return NotFound();
+
+            if (!ModelState.IsValid)
+                return View("PayAdvance", booking);
+
+            // SIMULATED payment gateway — no real bKash/Nagad/card integration.
+            // In production this would call the provider's API and wait for a callback.
+            booking.AdvancePaid = true;
+            booking.Status = "Confirmed";
+
+            _context.WalletTransactions.Add(new WalletTransaction
+            {
+                UserId = CurrentUserId,
+                Amount = booking.RequiredAdvance,
+                Type = "BookingAdvance",
+                PaymentMethod = model.PaymentMethod,
+                PhoneNumber = model.PhoneNumber,
+                Status = "Completed",
+                BookingId = booking.Id,
+                ReceiptNote = $"Advance payment for '{booking.TourPackage!.Title}' ({booking.NumberOfPeople} people)"
+            });
+
+            var admins = await _context.Users.Where(u => u.Role == "Admin").ToListAsync();
+            foreach (var admin in admins)
+            {
+                Vromonsathi.Helpers.NotificationHelper.AddNotification(
+                    _context, admin.Id,
+                    "Advance payment received",
+                    $"{booking.TouristUser!.FullName} paid ৳{booking.RequiredAdvance:N0} advance for '{booking.TourPackage!.Title}'.",
+                    "/Admin/PackageBookings");
+            }
+
+            await _context.SaveChangesAsync();
+
+            TempData["Message"] = "Payment received. Your booking is confirmed.";
+            return RedirectToAction("Receipt", new { bookingId = booking.Id });
+        }
+
+        public async Task<IActionResult> Receipt(int bookingId)
+        {
+            var booking = await _context.Bookings
+                .Include(b => b.TourPackage)
+                .Include(b => b.TouristUser)
+                .Include(b => b.AddOns).ThenInclude(a => a.VendorPackageOffer)
+                .FirstOrDefaultAsync(b => b.Id == bookingId && b.TouristUserId == CurrentUserId);
+
+            if (booking == null) return NotFound();
+
+            var transaction = await _context.WalletTransactions
+                .Where(t => t.BookingId == bookingId && t.Type == "BookingAdvance")
+                .OrderByDescending(t => t.CreatedAt)
+                .FirstOrDefaultAsync();
+
+            ViewBag.Transaction = transaction;
+            return View(booking);
+        }
+        [HttpGet]
+        public IActionResult Deposit()
+        {
+            return View();
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> Deposit(Vromonsathi.ViewModels.DepositViewModel model)
+        {
+            if (!ModelState.IsValid) return View(model);
+
+            var user = await _context.Users.FindAsync(CurrentUserId);
+            if (user == null) return NotFound();
+
+            // SIMULATED payment gateway — no real bKash/Nagad/card integration.
+            user.WalletBalance += model.Amount;
+
+            _context.WalletTransactions.Add(new WalletTransaction
+            {
+                UserId = CurrentUserId,
+                Amount = model.Amount,
+                Type = "Deposit",
+                PaymentMethod = model.PaymentMethod,
+                PhoneNumber = model.PhoneNumber,
+                Status = "Completed",
+                ReceiptNote = $"Wallet top-up via {model.PaymentMethod}"
+            });
+
+            await _context.SaveChangesAsync();
+
+            TempData["Message"] = $"৳{model.Amount:N0} added to your wallet. Wallet balance can only be used within Vromonsathi and is not withdrawable.";
+            return RedirectToAction("MyWallet");
         }
 
         [HttpPost]
@@ -77,9 +242,12 @@ namespace Vromonsathi.Controllers
 
             if (package == null) return NotFound();
             if (numberOfPeople < 1) numberOfPeople = 1;
-            if (numberOfPeople > package.MaxGroupSize)
+
+            var alreadyBooked = await Vromonsathi.Helpers.BookingHelper.GetBookedSlotsAsync(_context, packageId);
+            if (alreadyBooked + numberOfPeople > package.MaxGroupSize)
             {
-                TempData["Message"] = $"This package allows a maximum of {package.MaxGroupSize} people.";
+                var remaining = Math.Max(package.MaxGroupSize - alreadyBooked, 0);
+                TempData["Message"] = $"Only {remaining} spot(s) left on this package. Please reduce your group size.";
                 return RedirectToAction("BookPackage", new { id = packageId });
             }
 
@@ -135,7 +303,9 @@ namespace Vromonsathi.Controllers
                 TotalPrice = grandTotal,
                 Status = "Pending",
                 WalletCreditUsed = walletUsed,
-                WalletCreditEarned = totalUnspent
+                WalletCreditEarned = totalUnspent,
+                RequiredAdvance = 1500m * numberOfPeople,
+                AdvancePaid = false
             };
 
             _context.Bookings.Add(booking);
@@ -163,11 +333,9 @@ namespace Vromonsathi.Controllers
 
             await _context.SaveChangesAsync();
 
-            TempData["Message"] = totalUnspent > 0
-                ? $"Booking submitted. ৳{totalUnspent:N0} unused flexible budget was saved to your wallet."
-                : "Package booking request submitted.";
+            TempData["Message"] = $"Booking submitted. A ৳{booking.RequiredAdvance:N0} advance payment is required to confirm your spot.";
 
-            return RedirectToAction("MyBookings");
+            return RedirectToAction("PayAdvance", new { bookingId = booking.Id });
         }
 
         // ---------- MY BOOKINGS ----------

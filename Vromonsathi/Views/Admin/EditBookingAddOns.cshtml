@@ -1,0 +1,45 @@
+﻿@model Booking
+@{ ViewData["Title"] = "Edit Booking"; var availableOffers = ViewBag.AvailableOffers as List<VendorPackageOffer>; }
+
+<h2 class="mb-2">Edit Booking — @Model.TouristUser.FullName</h2>
+<p class="text-muted mb-4">'@Model.TourPackage!.Title' · @Model.NumberOfPeople people · Current total: ৳@Model.TotalPrice</p>
+
+@if (Model.EditRequested && !string.IsNullOrEmpty(Model.EditRequestNote))
+{
+    <div class="alert alert-info">Traveler's request: @Model.EditRequestNote</div>
+}
+
+<h5>Current Add-ons</h5>
+<ul class="mb-4">
+    @foreach (var a in Model.AddOns)
+    {
+        <li>@a.VendorPackageOffer!.Title — ৳@a.UnitPrice per person</li>
+    }
+    @if (!Model.AddOns.Any())
+    {
+        <li class="text-muted">None yet</li>
+    }
+</ul>
+
+<form asp-action="EditBookingAddOns" method="post">
+    <input type="hidden" name="bookingId" value="@Model.Id" />
+
+    <h5>Add Approved Vendor Offers</h5>
+    @if (availableOffers != null && availableOffers.Any())
+    {
+        @foreach (var o in availableOffers)
+        {
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="addOfferIds" value="@o.Id" id="offer@(o.Id)" />
+                <label class="form-check-label" for="offer@(o.Id)">@o.Title — @o.VendorProfile!.BusinessName (৳@o.Price per person)</label>
+            </div>
+        }
+    }
+    else
+    {
+        <p class="text-muted">No more approved offers available for this package.</p>
+    }
+
+    <button type="submit" class="btn btn-success mt-3">Save & Notify Traveler</button>
+    <a asp-action="PackageBookings" class="btn btn-secondary mt-3">Cancel</a>
+</form>

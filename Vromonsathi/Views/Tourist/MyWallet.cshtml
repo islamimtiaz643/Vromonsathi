@@ -1,0 +1,44 @@
+﻿@model List<Booking>
+@{
+    ViewData["Title"] = "My Wallet";
+}
+
+<div class="wrap" style="padding:40px 28px;">
+    <span class="tag">Balance</span>
+    <h2 style="margin-bottom:8px;">My Wallet</h2>
+    <div class="stat-card" style="max-width:260px; margin-bottom:16px;">
+    <div class="label">Current Balance</div>
+    <div class="value">৳@(((decimal)ViewBag.WalletBalance).ToString("N0"))</div>
+</div>
+<a asp-action="Deposit" class="btn btn-primary" style="margin-bottom:32px; display:inline-block;">+ Deposit Money</a>
+
+    <div class="section-head" style="margin-bottom:14px;">
+        <div><span class="tag">History</span><h2 style="font-size:20px;">Wallet Activity</h2></div>
+    </div>
+
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>Booking</th><th>Date</th><th class="num">Credit Earned</th><th class="num">Credit Used</th></tr></thead>
+            <tbody>
+                @foreach (var b in Model)
+                {
+                    var itemTitle = b.TourPackage?.Title ?? b.Listing?.Title ?? "—";
+                    <tr>
+                        <td>@itemTitle</td>
+                        <td>@b.CreatedAt.ToString("dd MMM yyyy")</td>
+                        <td class="num" style="color:@(b.WalletCreditEarned > 0 ? "var(--forest)" : "inherit");">
+                            @(b.WalletCreditEarned > 0 ? $"+৳{b.WalletCreditEarned:N0}" : "—")
+                        </td>
+                        <td class="num" style="color:@(b.WalletCreditUsed > 0 ? "var(--red)" : "inherit");">
+                            @(b.WalletCreditUsed > 0 ? $"-৳{b.WalletCreditUsed:N0}" : "—")
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    @if (!Model.Any())
+    {
+        <p style="opacity:0.7; margin-top:16px;">No wallet activity yet. Unused flexible budget from package bookings gets saved here automatically.</p>
+    }
+</div>

@@ -32,6 +32,14 @@ namespace Vromonsathi.Models
 
         public decimal WalletCreditUsed { get; set; } = 0;
         public decimal WalletCreditEarned { get; set; } = 0;
+       
+
+        public decimal RequiredAdvance { get; set; } = 0;
+        public bool AdvancePaid { get; set; } = false;
+
+        public bool EditRequested { get; set; } = false;
+        public string? EditRequestNote { get; set; }
+        public bool VendorsPaidOut { get; set; } = false;
 
         public ICollection<BookingAddOn> AddOns { get; set; } = new List<BookingAddOn>();
     }

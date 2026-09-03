@@ -368,6 +368,11 @@ namespace Vromonsathi.Controllers
         public async Task<IActionResult> TourPackages()
         {
             var list = await _context.TourPackages.Include(p => p.Destination).OrderByDescending(p => p.CreatedAt).ToListAsync();
+            foreach (var pkg in list)
+            {
+                var booked = await Vromonsathi.Helpers.BookingHelper.GetBookedSlotsAsync(_context, pkg.Id);
+                pkg.SlotsRemainingComputed = Math.Max(pkg.MaxGroupSize - booked, 0);
+            }
             return View(list);
         }
 
@@ -506,11 +511,29 @@ namespace Vromonsathi.Controllers
         {
             var booking = await _context.Bookings
                 .Include(b => b.TourPackage)
+                .Include(b => b.AddOns).ThenInclude(a => a.VendorPackageOffer).ThenInclude(o => o!.VendorProfile)
                 .FirstOrDefaultAsync(b => b.Id == id && b.TourPackageId != null);
 
             if (booking != null)
             {
                 booking.Status = status;
+
+                if (status == "Confirmed" && !booking.VendorsPaidOut && booking.AddOns.Any())
+                {
+                    foreach (var addOn in booking.AddOns)
+                    {
+                        var vendorProfile = addOn.VendorPackageOffer!.VendorProfile!;
+                        var payout = addOn.UnitPrice * booking.NumberOfPeople;
+                        vendorProfile.WalletBalance += payout;
+
+                        Vromonsathi.Helpers.NotificationHelper.AddNotification(
+                            _context, vendorProfile.UserId,
+                            "Payment received",
+                            $"You received ৳{payout:N0} for '{addOn.VendorPackageOffer.Title}' on a confirmed booking.",
+                            "/Vendor/MyWallet");
+                    }
+                    booking.VendorsPaidOut = true;
+                }
 
                 Vromonsathi.Helpers.NotificationHelper.AddNotification(
                     _context, booking.TouristUserId,
@@ -629,6 +652,84 @@ namespace Vromonsathi.Controllers
             }
             return RedirectToAction("VendorOffers");
         }
+
+        [HttpGet]
+        public async Task<IActionResult> EditBookingAddOns(int bookingId)
+        {
+            var booking = await _context.Bookings
+                .Include(b => b.TourPackage).ThenInclude(p => p!.VendorOffers).ThenInclude(o => o.VendorProfile)
+                .Include(b => b.AddOns).ThenInclude(a => a.VendorPackageOffer)
+                .Include(b => b.TouristUser)
+                .FirstOrDefaultAsync(b => b.Id == bookingId);
+
+            if (booking == null) return NotFound();
+
+            var alreadyChosenIds = booking.AddOns.Select(a => a.VendorPackageOfferId).ToHashSet();
+            ViewBag.AvailableOffers = booking.TourPackage!.VendorOffers
+                .Where(o => o.Status == "Approved" && o.IsActive && !alreadyChosenIds.Contains(o.Id))
+                .ToList();
+
+            return View(booking);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> EditBookingAddOns(int bookingId, int[]? addOfferIds)
+        {
+            var booking = await _context.Bookings
+                .Include(b => b.TourPackage)
+                .Include(b => b.TouristUser)
+                .FirstOrDefaultAsync(b => b.Id == bookingId);
+
+            if (booking == null) return NotFound();
+
+            if (addOfferIds != null && addOfferIds.Length > 0)
+            {
+                var offers = await _context.VendorPackageOffers
+                    .Include(o => o.VendorProfile)
+                    .Where(o => addOfferIds.Contains(o.Id) && o.Status == "Approved" && o.IsActive)
+                    .ToListAsync();
+
+                foreach (var offer in offers)
+                {
+                    _context.BookingAddOns.Add(new BookingAddOn
+                    {
+                        BookingId = booking.Id,
+                        VendorPackageOfferId = offer.Id,
+                        UnitPrice = offer.Price
+                    });
+
+                    var addCost = offer.Price * booking.NumberOfPeople;
+                    booking.TotalPrice += addCost;
+
+                    // Pay vendor immediately for this add-on since the booking is already confirmed
+                    if (booking.Status == "Confirmed" || booking.Status == "Completed")
+                    {
+                        offer.VendorProfile!.WalletBalance += addCost;
+
+                        Vromonsathi.Helpers.NotificationHelper.AddNotification(
+                            _context, offer.VendorProfile.UserId,
+                            "Payment received",
+                            $"You received ৳{addCost:N0} for '{offer.Title}' added to a confirmed booking.",
+                            "/Vendor/MyWallet");
+                    }
+                }
+
+                Vromonsathi.Helpers.NotificationHelper.AddNotification(
+                    _context, booking.TouristUserId,
+                    "Booking updated",
+                    $"Admin added {offers.Count} facility/facilities to your '{booking.TourPackage!.Title}' booking. New total: ৳{booking.TotalPrice:N0}.",
+                    "/Tourist/MyBookings");
+            }
+
+            booking.EditRequested = false;
+            booking.EditRequestNote = null;
+            await _context.SaveChangesAsync();
+
+            TempData["Message"] = "Booking updated.";
+            return RedirectToAction("PackageBookings");
+        }
     }
 }
+
+
     

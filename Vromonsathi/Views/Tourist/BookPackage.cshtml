@@ -8,6 +8,11 @@
 <div class="wrap" style="padding:40px 28px;">
     <h2 style="margin-bottom:8px;">Book: @Model.Title</h2>
     <p style="opacity:0.75; margin-bottom:8px;">@(Model.Destination?.Name ?? "Multi-destination") · @Model.DurationDays days · Max @Model.MaxGroupSize people</p>
+    <p style="margin-bottom:8px;">
+        <span class="badge @(((int)ViewBag.SlotsRemaining) > 0 ? "badge-confirmed" : "badge-cancelled")">
+            @(((int)ViewBag.SlotsRemaining) > 0 ? $"{ViewBag.SlotsRemaining} of {Model.MaxGroupSize} spots left" : "Fully booked")
+        </span>
+    </p> @Model.MaxGroupSize people</p>
     <p style="margin-bottom:24px;">@Model.Description</p>
 
     <div class="stat-grid" style="max-width:700px;">

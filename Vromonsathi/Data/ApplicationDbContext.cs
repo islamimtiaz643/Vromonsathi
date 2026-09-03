@@ -26,6 +26,8 @@ namespace Vromonsathi.Data
         public DbSet<PackageLineItem> PackageLineItems { get; set; }
         public DbSet<VendorPackageOffer> VendorPackageOffers { get; set; }
         public DbSet<BookingAddOn> BookingAddOns { get; set; }
+        
+        public DbSet<WalletTransaction> WalletTransactions { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -135,6 +137,17 @@ namespace Vromonsathi.Data
                 .WithMany(o => o.BookingAddOns)
                 .HasForeignKey(a => a.VendorPackageOfferId)
                 .OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<WalletTransaction>()
+    .HasOne(w => w.User)
+    .WithMany()
+    .HasForeignKey(w => w.UserId)
+    .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<WalletTransaction>()
+                .HasOne(w => w.Booking)
+                .WithMany()
+                .HasForeignKey(w => w.BookingId)
+                .OnDelete(DeleteBehavior.SetNull);
         }
     }
 }

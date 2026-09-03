@@ -1,0 +1,38 @@
+﻿@model Booking
+@{ ViewData["Title"] = "Request Booking Edit"; var availableOffers = ViewBag.AvailableOffers as List<VendorPackageOffer>; }
+
+<div class="wrap" style="padding:40px 28px;">
+    <h2 style="margin-bottom:8px;">Request to Add Facilities</h2>
+    <p style="opacity:0.75; margin-bottom:24px;">'@Model.TourPackage!.Title' · @Model.NumberOfPeople people</p>
+
+    <form asp-action="RequestEdit" method="post" style="max-width:500px;">
+        <input type="hidden" name="bookingId" value="@Model.Id" />
+
+        @if (availableOffers != null && availableOffers.Any())
+        {
+            <h4 style="margin-bottom:10px;">Available Vendor Facilities</h4>
+            <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:16px;">
+                @foreach (var o in availableOffers)
+                {
+                    <label class="chip" style="justify-content:flex-start;">
+                        <input type="checkbox" name="requestedOfferIds" value="@o.Id" />
+                        <span style="margin-left:8px;">@o.Title — @o.VendorProfile!.BusinessName</span>
+                        <span class="price">৳@o.Price</span>
+                    </label>
+                }
+            </div>
+        }
+        else
+        {
+            <p style="opacity:0.7; margin-bottom:16px;">No additional approved vendor offers available for this package right now.</p>
+        }
+
+        <div class="field">
+            <label>Additional note for admin (optional)</label>
+            <textarea name="note" rows="3" style="width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:8px;"></textarea>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Send Request to Admin</button>
+        <a asp-action="MyBookings" class="btn btn-ghost">Cancel</a>
+    </form>
+</div>

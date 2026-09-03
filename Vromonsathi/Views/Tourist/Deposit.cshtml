@@ -1,0 +1,57 @@
+﻿@model DepositViewModel
+@{ ViewData["Title"] = "Deposit to Wallet"; }
+
+<div class="wrap" style="padding:40px 28px;">
+    <span class="tag">Simulated payment — no real money moves</span>
+    <h2 style="margin-bottom:8px;">Deposit to Wallet</h2>
+    <p style="opacity:0.75; margin-bottom:24px; max-width:480px;">
+        Add money to your Vromonsathi wallet. This balance can be used toward bookings on this platform only —
+        <strong>it cannot be withdrawn back to your bank/mobile account.</strong>
+    </p>
+
+    <form asp-action="Deposit" method="post" style="max-width:420px;">
+        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+        <div class="field">
+            <label>Amount (৳)</label>
+            <input asp-for="Amount" type="number" min="100" style="width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:8px;" />
+            <span asp-validation-for="Amount" class="text-danger"></span>
+        </div>
+
+        <div class="field">
+            <label>Payment Method</label>
+            <select asp-for="PaymentMethod" id="payMethod" style="width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:8px;">
+                <option value="bKash">bKash</option>
+                <option value="Nagad">Nagad</option>
+                <option value="Card">Card (Visa only)</option>
+            </select>
+        </div>
+
+        <div class="field">
+            <label>Phone Number</label>
+            <input asp-for="PhoneNumber" placeholder="01XXXXXXXXX" style="width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:8px;" />
+            <span asp-validation-for="PhoneNumber" class="text-danger"></span>
+        </div>
+
+        <div class="field" id="cardField" style="display:none;">
+            <label>Card Last 4 Digits (Visa only)</label>
+            <input asp-for="CardLast4" maxlength="4" style="width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:8px;" />
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="width:100%; margin-top:10px;">Deposit</button>
+    </form>
+
+    <p style="font-size:11px; opacity:0.6; margin-top:16px; max-width:420px;">
+        Simulated for demonstration. No real transaction is processed. In production this would connect to a real bKash/Nagad/card payment gateway.
+    </p>
+</div>
+
+@section Scripts {
+<script>
+    var payMethod = document.getElementById('payMethod');
+    var cardField = document.getElementById('cardField');
+    function toggleCard() { cardField.style.display = payMethod.value === 'Card' ? 'block' : 'none'; }
+    payMethod.addEventListener('change', toggleCard);
+    toggleCard();
+</script>
+}

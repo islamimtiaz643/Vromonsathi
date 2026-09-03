@@ -1,0 +1,53 @@
+﻿@model Booking
+@{
+    ViewData["Title"] = "Pay Advance";
+}
+
+<div class="wrap" style="padding:40px 28px;">
+    <span class="tag">Simulated payment — no real money moves</span>
+    <h2 style="margin-bottom:8px;">Pay Advance</h2>
+    <p style="opacity:0.75; margin-bottom:24px;">
+        '@Model.TourPackage!.Title' · @Model.NumberOfPeople people · Required advance: <strong>৳@Model.RequiredAdvance.ToString("N0")</strong>
+        (৳1,500 × @Model.NumberOfPeople people)
+    </p>
+
+    <form asp-action="PayAdvance" method="post" style="max-width:420px;">
+        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+        <input type="hidden" name="BookingId" value="@Model.Id" />
+
+        <div class="field">
+            <label>Payment Method</label>
+            <select name="PaymentMethod" class="form-select" id="payMethod" style="width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:8px;">
+                <option value="bKash">bKash</option>
+                <option value="Nagad">Nagad</option>
+                <option value="Card">Card (Visa only)</option>
+            </select>
+        </div>
+
+        <div class="field">
+            <label>Phone Number (bKash/Nagad number)</label>
+            <input type="text" name="PhoneNumber" placeholder="01XXXXXXXXX" style="width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:8px;" required />
+        </div>
+
+        <div class="field" id="cardField" style="display:none;">
+            <label>Card Last 4 Digits (Visa only)</label>
+            <input type="text" name="CardLast4" maxlength="4" placeholder="1234" style="width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:8px;" />
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="width:100%; margin-top:10px;">Pay ৳@Model.RequiredAdvance.ToString("N0")</button>
+    </form>
+
+    <p style="font-size:11.5px; opacity:0.6; margin-top:16px; max-width:420px;">
+        This is a simulated payment for demonstration purposes. No real transaction is processed. In production this would connect to a real bKash/Nagad/card payment gateway.
+    </p>
+</div>
+
+@section Scripts {
+    <script>
+        var payMethod = document.getElementById('payMethod');
+        var cardField = document.getElementById('cardField');
+        function toggleCard() { cardField.style.display = payMethod.value === 'Card' ? 'block' : 'none'; }
+        payMethod.addEventListener('change', toggleCard);
+        toggleCard();
+    </script>
+}

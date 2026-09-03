@@ -21,7 +21,10 @@ namespace Vromonsathi.Models
         
 
         public int MaxGroupSize { get; set; } = 15;
+        
 
+        [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+        public int SlotsRemainingComputed { get; set; }
         public string? ImageUrl { get; set; }
 
         public bool IsActive { get; set; } = true;

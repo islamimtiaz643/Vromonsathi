@@ -24,6 +24,24 @@
                         {
                             <div class="text-danger" style="font-size:11.5px; margin-top:4px; max-width:220px;">@b.CancellationNote</div>
                         }
+                        @if (b.TourPackageId != null && !b.AdvancePaid)
+                        {
+                            <div style="margin-top:6px;">
+                                <a asp-action="PayAdvance" asp-route-bookingId="@b.Id" class="btn btn-sm btn-danger">Pay Advance ৳@b.RequiredAdvance.ToString("N0")</a>
+                            </div>
+                        }
+                       @if (b.TourPackageId != null && b.AdvancePaid)
+{
+    <div style="margin-top:6px;"><a asp-action="Receipt" asp-route-bookingId="@b.Id" style="font-size:11.5px;">View Receipt</a></div>
+}
+@if (b.TourPackageId != null && b.Status == "Confirmed" && !b.EditRequested)
+{
+    <div style="margin-top:4px;"><a asp-action="RequestEdit" asp-route-bookingId="@b.Id" style="font-size:11.5px;">Request to add facilities</a></div>
+}
+@if (b.EditRequested)
+{
+    <div style="margin-top:4px;"><span class="badge badge-pending" style="font-size:10px;">Edit request pending</span></div>
+}
                     </td>
                     <td>
                         @if (b.Status == "Pending")

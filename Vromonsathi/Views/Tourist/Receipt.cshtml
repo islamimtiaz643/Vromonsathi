@@ -1,0 +1,48 @@
+﻿@model Booking
+@{
+    ViewData["Title"] = "Payment Receipt"; var txn = ViewBag.Transaction as WalletTransaction;
+}
+
+<div class="wrap" style="padding:40px 28px; max-width:600px;">
+    <div class="fac-card" style="border-color:var(--forest);">
+        <div style="text-align:center; margin-bottom:20px;">
+            <span class="badge badge-confirmed">Payment Confirmed</span>
+            <h2 style="margin-top:10px;">Booking Receipt</h2>
+        </div>
+
+        <div class="table-wrap">
+            <table>
+                <tbody>
+                    <tr><td>Traveler</td><td class="num">@Model.TouristUser.FullName</td></tr>
+                    <tr><td>Package</td><td class="num">@Model.TourPackage!.Title</td></tr>
+                    <tr><td>Start Date</td><td class="num">@Model.StartDate.ToString("dd MMM yyyy")</td></tr>
+                    <tr><td>Group Size</td><td class="num">@Model.NumberOfPeople people</td></tr>
+                    @if (Model.AddOns.Any())
+                    {
+                        foreach (var a in Model.AddOns)
+                        {
+                            <tr><td>Add-on: @a.VendorPackageOffer!.Title</td><td class="num">৳@a.UnitPrice.ToString("N0")</td></tr>
+                        }
+                    }
+                    <tr><td>Total Booking Value</td><td class="num">৳@Model.TotalPrice.ToString("N0")</td></tr>
+                    @if (txn != null)
+                    {
+                        <tr><td>Advance Paid</td><td class="num">৳@txn.Amount.ToString("N0")</td></tr>
+                        <tr><td>Payment Method</td><td class="num">@txn.PaymentMethod</td></tr>
+                        <tr><td>Phone Number</td><td class="num">@txn.PhoneNumber</td></tr>
+                        <tr><td>Transaction Date</td><td class="num">@txn.CreatedAt.ToString("dd MMM yyyy, h:mm tt")</td></tr>
+                    }
+                    <tr><td>Status</td><td class="num"><span class="badge badge-confirmed">@Model.Status</span></td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <p style="font-size:11px; opacity:0.6; margin-top:16px; text-align:center;">
+            Simulated receipt for demonstration purposes — Vromonsathi Smart Tourism Platform
+        </p>
+
+        <div style="text-align:center; margin-top:16px;">
+            <a asp-action="MyBookings" class="btn btn-primary">Back to My Bookings</a>
+        </div>
+    </div>
+</div>

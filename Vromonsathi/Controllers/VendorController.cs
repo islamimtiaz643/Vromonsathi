@@ -236,8 +236,8 @@ namespace Vromonsathi.Controllers
             }
             return RedirectToAction("Bookings");
         }
-    
-            // ---------- OFFERS ON ADMIN PACKAGES ----------
+
+        // ---------- OFFERS ON ADMIN PACKAGES ----------
         public async Task<IActionResult> BrowsePackages()
         {
             var packages = await _context.TourPackages
@@ -323,6 +323,21 @@ namespace Vromonsathi.Controllers
                 await _context.SaveChangesAsync();
             }
             return RedirectToAction("MyOffers");
+        }
+
+        public async Task<IActionResult> MyWallet()
+        {
+            var vendor = await GetCurrentVendorProfile();
+            if (vendor == null) return RedirectToAction("Login", "Account");
+
+            ViewBag.WalletBalance = vendor.WalletBalance;
+
+            var history = await _context.WalletTransactions
+                .Where(t => t.UserId == vendor.UserId)
+                .OrderByDescending(t => t.CreatedAt)
+                .ToListAsync();
+
+            return View(history);
         }
     }
 }

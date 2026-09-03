@@ -27,6 +27,10 @@ namespace Vromonsathi.Models
         public string? Address { get; set; }
 
         public bool IsApproved { get; set; } = false;
+        
+
+        public decimal WalletBalance { get; set; } = 0;
+
 
         public DateTime CreatedAt { get; set; } = DateTime.Now;
 
