@@ -20,6 +20,7 @@
                     <td>৳@p.Price</td>
                     <td>@(p.IsActive ? "Active" : "Inactive")</td>
                     <td>
+                        <a asp-action="PackageLineItems" asp-route-packageId="@p.Id" class="btn btn-sm btn-outline-secondary">Cost Breakdown</a>
                         <a asp-action="EditTourPackage" asp-route-id="@p.Id" class="btn btn-sm btn-outline-primary">Edit</a>
                         <a asp-action="DeleteTourPackage" asp-route-id="@p.Id" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete this package?');">Delete</a>
                     </td>

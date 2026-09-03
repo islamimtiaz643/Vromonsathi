@@ -28,6 +28,7 @@
         <div class="stat-card"><div class="label">Pending</div><div class="value">@ViewBag.PendingBookings</div></div>
         <div class="stat-card"><div class="label">Confirmed</div><div class="value">@ViewBag.ConfirmedBookings</div></div>
         <div class="stat-card"><div class="label">Completed</div><div class="value">@ViewBag.CompletedBookings</div></div>
+        <div class="stat-card"><div class="label">Wallet Balance</div><div class="value">৳@(((decimal)ViewBag.WalletBalance).ToString("N0"))</div></div>
     </div>
 
     <div class="action-grid">

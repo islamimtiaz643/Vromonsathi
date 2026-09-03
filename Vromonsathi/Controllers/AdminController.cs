@@ -522,5 +522,113 @@ namespace Vromonsathi.Controllers
             }
             return RedirectToAction("PackageBookings");
         }
+
+        // ---------- PACKAGE LINE ITEMS (mandatory/optional cost breakdown) ----------
+        public async Task<IActionResult> PackageLineItems(int packageId)
+        {
+            var package = await _context.TourPackages.FindAsync(packageId);
+            if (package == null) return NotFound();
+
+            ViewBag.Package = package;
+            var list = await _context.PackageLineItems
+                .Where(l => l.TourPackageId == packageId)
+                .ToListAsync();
+
+            ViewBag.MandatoryTotal = list.Where(l => l.IsMandatory).Sum(l => l.Cost);
+            ViewBag.FlexibleBudget = package.Price - ViewBag.MandatoryTotal;
+
+            return View(list);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> CreatePackageLineItem(int packageId)
+        {
+            var package = await _context.TourPackages.FindAsync(packageId);
+            if (package == null) return NotFound();
+            ViewBag.Package = package;
+            return View(new PackageLineItem { TourPackageId = packageId, IsMandatory = true });
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> CreatePackageLineItem(PackageLineItem model)
+        {
+            ModelState.Remove("TourPackage");
+            if (!ModelState.IsValid)
+            {
+                ViewBag.Package = await _context.TourPackages.FindAsync(model.TourPackageId);
+                return View(model);
+            }
+
+            _context.PackageLineItems.Add(model);
+            await _context.SaveChangesAsync();
+            TempData["Message"] = "Line item added.";
+            return RedirectToAction("PackageLineItems", new { packageId = model.TourPackageId });
+        }
+
+        public async Task<IActionResult> DeletePackageLineItem(int id)
+        {
+            var item = await _context.PackageLineItems.FindAsync(id);
+            if (item == null) return NotFound();
+            int packageId = item.TourPackageId;
+            _context.PackageLineItems.Remove(item);
+            await _context.SaveChangesAsync();
+            return RedirectToAction("PackageLineItems", new { packageId });
+        }
+
+        // ---------- VENDOR OFFERS (approve/reject) ----------
+        public async Task<IActionResult> VendorOffers()
+        {
+            var list = await _context.VendorPackageOffers
+                .Include(o => o.TourPackage)
+                .Include(o => o.VendorProfile)
+                .OrderByDescending(o => o.CreatedAt)
+                .ToListAsync();
+            return View(list);
+        }
+
+        public async Task<IActionResult> ApproveOffer(int id)
+        {
+            var offer = await _context.VendorPackageOffers
+                .Include(o => o.VendorProfile)
+                .Include(o => o.TourPackage)
+                .FirstOrDefaultAsync(o => o.Id == id);
+
+            if (offer != null)
+            {
+                offer.Status = "Approved";
+                await _context.SaveChangesAsync();
+
+                Vromonsathi.Helpers.NotificationHelper.AddNotification(
+                    _context, offer.VendorProfile!.UserId,
+                    "Offer approved",
+                    $"Your offer '{offer.Title}' for package '{offer.TourPackage!.Title}' was approved and is now visible to travelers.",
+                    "/Vendor/MyOffers");
+                await _context.SaveChangesAsync();
+            }
+            return RedirectToAction("VendorOffers");
+        }
+
+        public async Task<IActionResult> RejectOffer(int id)
+        {
+            var offer = await _context.VendorPackageOffers
+                .Include(o => o.VendorProfile)
+                .Include(o => o.TourPackage)
+                .FirstOrDefaultAsync(o => o.Id == id);
+
+            if (offer != null)
+            {
+                offer.Status = "Rejected";
+                await _context.SaveChangesAsync();
+
+                Vromonsathi.Helpers.NotificationHelper.AddNotification(
+                    _context, offer.VendorProfile!.UserId,
+                    "Offer rejected",
+                    $"Your offer '{offer.Title}' for package '{offer.TourPackage!.Title}' was not approved.",
+                    "/Vendor/MyOffers");
+                await _context.SaveChangesAsync();
+            }
+            return RedirectToAction("VendorOffers");
+        }
     }
 }
+    

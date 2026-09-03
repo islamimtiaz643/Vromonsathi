@@ -1,24 +1,80 @@
 ﻿@model TourPackage
 @{
     ViewData["Title"] = "Book " + Model.Title;
+    var mandatoryItems = Model.LineItems.Where(l => l.IsMandatory).ToList();
+    var optionalItems = Model.LineItems.Where(l => !l.IsMandatory).ToList();
 }
 
 <div class="wrap" style="padding:40px 28px;">
     <h2 style="margin-bottom:8px;">Book: @Model.Title</h2>
-    <p style="opacity:0.75; margin-bottom:16px;">@(Model.Destination?.Name ?? "Multi-destination") · @Model.DurationDays days · ৳@Model.Price.ToString("N0") per person</p>
+    <p style="opacity:0.75; margin-bottom:8px;">@(Model.Destination?.Name ?? "Multi-destination") · @Model.DurationDays days · Max @Model.MaxGroupSize people</p>
     <p style="margin-bottom:24px;">@Model.Description</p>
 
-    <form asp-action="BookPackage" method="post" style="max-width:480px;">
+    <div class="stat-grid" style="max-width:700px;">
+        <div class="stat-card"><div class="label">Package Price</div><div class="value">৳@Model.Price.ToString("N0")</div></div>
+        <div class="stat-card"><div class="label">Mandatory Cost</div><div class="value">৳@(((decimal)ViewBag.MandatoryTotal).ToString("N0"))</div></div>
+        <div class="stat-card"><div class="label">Flexible Budget</div><div class="value">৳@(((decimal)ViewBag.FlexibleBudget).ToString("N0"))</div></div>
+        <div class="stat-card"><div class="label">Wallet Balance</div><div class="value">৳@(((decimal)ViewBag.WalletBalance).ToString("N0"))</div></div>
+    </div>
+
+    @if (mandatoryItems.Any())
+    {
+        <h4 style="margin:24px 0 10px;">Included (Mandatory)</h4>
+        <div class="table-wrap" style="max-width:700px; margin-bottom:24px;">
+            <table>
+                <thead><tr><th>Item</th><th class="num">Cost</th></tr></thead>
+                <tbody>
+                    @foreach (var l in mandatoryItems)
+                    {
+                        <tr><td>@l.Label</td><td class="num">৳@l.Cost.ToString("N0")</td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+
+    <form asp-action="BookPackage" method="post" style="max-width:700px;">
         <input type="hidden" name="packageId" value="@Model.Id" />
+
         <div class="field">
             <label>Start Date</label>
             <input type="date" name="startDate" required style="width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:8px;" />
         </div>
         <div class="field">
-            <label>Number of People</label>
-            <input type="number" name="numberOfPeople" value="1" min="1" style="width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:8px;" />
+            <label>Number of People (max @Model.MaxGroupSize)</label>
+            <input type="number" name="numberOfPeople" value="1" min="1" max="@Model.MaxGroupSize" style="width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:8px;" />
         </div>
-        <button type="submit" class="btn btn-primary">Confirm Booking Request</button>
+
+        @if (Model.VendorOffers.Any())
+        {
+            <h4 style="margin:20px 0 10px;">Optional Add-ons (from your flexible budget — un-used amount is saved to your wallet)</h4>
+            <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:16px;">
+                @foreach (var o in Model.VendorOffers)
+                {
+                    <label class="chip" style="justify-content:flex-start;">
+                        <input type="checkbox" name="selectedOfferIds" value="@o.Id" />
+                        <span style="margin-left:8px;">@o.Title — @o.VendorProfile.BusinessName</span>
+                        <span class="price">৳@o.Price</span>
+                    </label>
+                }
+            </div>
+        }
+        else
+        {
+            <p style="opacity:0.7; margin:20px 0;">No optional vendor add-ons available for this package yet. Your full flexible budget (৳@(((decimal)ViewBag.FlexibleBudget).ToString("N0")) per person) will be saved to your wallet.</p>
+        }
+
+        @if ((decimal)ViewBag.WalletBalance > 0)
+        {
+            <div class="field">
+                <label class="chip" style="justify-content:flex-start;">
+                    <input type="checkbox" name="useWallet" value="true" />
+                    <span style="margin-left:8px;">Use my wallet balance (৳@(((decimal)ViewBag.WalletBalance).ToString("N0"))) toward this booking</span>
+                </label>
+            </div>
+        }
+
+        <button type="submit" class="btn btn-primary" style="margin-top:10px;">Confirm Booking Request</button>
         <a asp-controller="Home" asp-action="Index" class="btn btn-ghost">Cancel</a>
     </form>
 </div>

@@ -23,12 +23,15 @@ namespace Vromonsathi.Controllers
             var bookings = await _context.Bookings
                 .Where(b => b.TouristUserId == CurrentUserId)
                 .ToListAsync();
-
             ViewBag.RefundNotices = bookings.Where(b => b.Status == "Cancelled" && b.CancellationNote != null).ToList();
             ViewBag.TotalBookings = bookings.Count;
+
+            var currentUser = await _context.Users.FindAsync(CurrentUserId);
+            ViewBag.WalletBalance = currentUser!.WalletBalance;
             ViewBag.PendingBookings = bookings.Count(b => b.Status == "Pending");
             ViewBag.ConfirmedBookings = bookings.Count(b => b.Status == "Confirmed");
             ViewBag.CompletedBookings = bookings.Count(b => b.Status == "Completed");
+
 
             var recentBookings = await _context.Bookings
     .Include(b => b.Listing)
@@ -47,44 +50,123 @@ namespace Vromonsathi.Controllers
         {
             var package = await _context.TourPackages
                 .Include(p => p.Destination)
+                .Include(p => p.LineItems)
+                .Include(p => p.VendorOffers.Where(o => o.Status == "Approved" && o.IsActive))
+                .ThenInclude(o => o.VendorProfile)
                 .FirstOrDefaultAsync(p => p.Id == id && p.IsActive);
 
             if (package == null) return NotFound();
+
+            var user = await _context.Users.FindAsync(CurrentUserId);
+            ViewBag.WalletBalance = user!.WalletBalance;
+
+            var mandatoryTotal = package.LineItems.Where(l => l.IsMandatory).Sum(l => l.Cost);
+            ViewBag.MandatoryTotal = mandatoryTotal;
+            ViewBag.FlexibleBudget = package.Price - mandatoryTotal;
+
             return View(package);
         }
 
         [HttpPost]
-        public async Task<IActionResult> BookListing(int listingId, DateTime startDate, DateTime? endDate, int numberOfPeople)
+        public async Task<IActionResult> BookPackage(int packageId, DateTime startDate, int numberOfPeople, int[]? selectedOfferIds, bool useWallet)
         {
-            var listing = await _context.Listings
-                .Include(l => l.VendorProfile)
-                .FirstOrDefaultAsync(l => l.Id == listingId && l.IsActive);
-            if (listing == null) return NotFound();
+            var package = await _context.TourPackages
+                .Include(p => p.LineItems)
+                .Include(p => p.VendorOffers)
+                .FirstOrDefaultAsync(p => p.Id == packageId && p.IsActive);
 
+            if (package == null) return NotFound();
             if (numberOfPeople < 1) numberOfPeople = 1;
+            if (numberOfPeople > package.MaxGroupSize)
+            {
+                TempData["Message"] = $"This package allows a maximum of {package.MaxGroupSize} people.";
+                return RedirectToAction("BookPackage", new { id = packageId });
+            }
+
+            var user = await _context.Users.FindAsync(CurrentUserId);
+
+            var mandatoryTotal = package.LineItems.Where(l => l.IsMandatory).Sum(l => l.Cost);
+            var flexibleBudget = package.Price - mandatoryTotal;
+
+            var chosenOffers = new List<VendorPackageOffer>();
+            decimal addOnCostPerPerson = 0;
+
+            if (selectedOfferIds != null && selectedOfferIds.Length > 0)
+            {
+                chosenOffers = package.VendorOffers
+                    .Where(o => selectedOfferIds.Contains(o.Id) && o.Status == "Approved" && o.IsActive)
+                    .ToList();
+                addOnCostPerPerson = chosenOffers.Sum(o => o.Price);
+            }
+
+            if (addOnCostPerPerson > flexibleBudget)
+            {
+                TempData["Message"] = $"Selected add-ons (৳{addOnCostPerPerson}) exceed your flexible budget (৳{flexibleBudget}) per person. Please deselect some.";
+                return RedirectToAction("BookPackage", new { id = packageId });
+            }
+
+            var unspentPerPerson = flexibleBudget - addOnCostPerPerson;
+            var totalUnspent = unspentPerPerson * numberOfPeople;
+
+            decimal walletUsed = 0;
+            var basePrice = package.Price * numberOfPeople;
+            var addOnTotal = addOnCostPerPerson * numberOfPeople;
+            var grandTotal = basePrice + addOnTotal;
+
+            if (useWallet && user!.WalletBalance > 0)
+            {
+                walletUsed = Math.Min(user.WalletBalance, grandTotal);
+                user.WalletBalance -= walletUsed;
+                grandTotal -= walletUsed;
+            }
+
+            if (totalUnspent > 0)
+            {
+                user!.WalletBalance += totalUnspent;
+            }
 
             var booking = new Booking
             {
                 TouristUserId = CurrentUserId,
-                ListingId = listingId,
+                TourPackageId = packageId,
                 StartDate = startDate,
-                EndDate = endDate,
+                EndDate = startDate.AddDays(package.DurationDays),
                 NumberOfPeople = numberOfPeople,
-                TotalPrice = listing.Price * numberOfPeople,
-                Status = "Pending"
+                TotalPrice = grandTotal,
+                Status = "Pending",
+                WalletCreditUsed = walletUsed,
+                WalletCreditEarned = totalUnspent
             };
 
             _context.Bookings.Add(booking);
+            await _context.SaveChangesAsync();
 
-            Vromonsathi.Helpers.NotificationHelper.AddNotification(
-                _context, listing.VendorProfile.UserId,
-                "New booking request",
-                $"{HttpContext.Session.GetString("FullName")} requested to book '{listing.Title}'.",
-                "/Vendor/Bookings");
+            foreach (var offer in chosenOffers)
+            {
+                _context.BookingAddOns.Add(new BookingAddOn
+                {
+                    BookingId = booking.Id,
+                    VendorPackageOfferId = offer.Id,
+                    UnitPrice = offer.Price
+                });
+            }
+
+            var admins = await _context.Users.Where(u => u.Role == "Admin").ToListAsync();
+            foreach (var admin in admins)
+            {
+                Vromonsathi.Helpers.NotificationHelper.AddNotification(
+                    _context, admin.Id,
+                    "New package booking",
+                    $"{HttpContext.Session.GetString("FullName")} booked '{package.Title}' for {numberOfPeople} people.",
+                    "/Admin/PackageBookings");
+            }
 
             await _context.SaveChangesAsync();
 
-            TempData["Message"] = "Booking request submitted. Waiting for vendor confirmation.";
+            TempData["Message"] = totalUnspent > 0
+                ? $"Booking submitted. ৳{totalUnspent:N0} unused flexible budget was saved to your wallet."
+                : "Package booking request submitted.";
+
             return RedirectToAction("MyBookings");
         }
 

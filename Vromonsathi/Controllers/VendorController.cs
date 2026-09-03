@@ -236,5 +236,93 @@ namespace Vromonsathi.Controllers
             }
             return RedirectToAction("Bookings");
         }
+    
+            // ---------- OFFERS ON ADMIN PACKAGES ----------
+        public async Task<IActionResult> BrowsePackages()
+        {
+            var packages = await _context.TourPackages
+                .Include(p => p.Destination)
+                .Where(p => p.IsActive)
+                .OrderByDescending(p => p.CreatedAt)
+                .ToListAsync();
+            return View(packages);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> CreateOffer(int packageId)
+        {
+            var vendor = await GetCurrentVendorProfile();
+            if (vendor == null || !vendor.IsApproved)
+            {
+                TempData["Message"] = "Your vendor account must be approved before submitting offers.";
+                return RedirectToAction("Dashboard");
+            }
+
+            var package = await _context.TourPackages.FindAsync(packageId);
+            if (package == null) return NotFound();
+
+            ViewBag.Package = package;
+            return View(new VendorPackageOffer { TourPackageId = packageId });
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> CreateOffer(VendorPackageOffer model)
+        {
+            var vendor = await GetCurrentVendorProfile();
+            if (vendor == null || !vendor.IsApproved) return RedirectToAction("Dashboard");
+
+            ModelState.Remove("TourPackage");
+            ModelState.Remove("VendorProfile");
+            if (!ModelState.IsValid)
+            {
+                ViewBag.Package = await _context.TourPackages.FindAsync(model.TourPackageId);
+                return View(model);
+            }
+
+            model.VendorProfileId = vendor.Id;
+            model.Status = "Pending";
+            _context.VendorPackageOffers.Add(model);
+
+            var admins = await _context.Users.Where(u => u.Role == "Admin").ToListAsync();
+            var package = await _context.TourPackages.FindAsync(model.TourPackageId);
+            foreach (var admin in admins)
+            {
+                Vromonsathi.Helpers.NotificationHelper.AddNotification(
+                    _context, admin.Id,
+                    "New vendor offer",
+                    $"{vendor.BusinessName} offered '{model.Title}' for package '{package!.Title}'.",
+                    "/Admin/VendorOffers");
+            }
+
+            await _context.SaveChangesAsync();
+            TempData["Message"] = "Offer submitted for admin approval.";
+            return RedirectToAction("MyOffers");
+        }
+
+        public async Task<IActionResult> MyOffers()
+        {
+            var vendor = await GetCurrentVendorProfile();
+            if (vendor == null) return RedirectToAction("Login", "Account");
+
+            var offers = await _context.VendorPackageOffers
+                .Include(o => o.TourPackage)
+                .Where(o => o.VendorProfileId == vendor.Id)
+                .OrderByDescending(o => o.CreatedAt)
+                .ToListAsync();
+
+            return View(offers);
+        }
+
+        public async Task<IActionResult> DeleteOffer(int id)
+        {
+            var vendor = await GetCurrentVendorProfile();
+            var offer = await _context.VendorPackageOffers.FirstOrDefaultAsync(o => o.Id == id && o.VendorProfileId == vendor!.Id);
+            if (offer != null)
+            {
+                _context.VendorPackageOffers.Remove(offer);
+                await _context.SaveChangesAsync();
+            }
+            return RedirectToAction("MyOffers");
+        }
     }
 }

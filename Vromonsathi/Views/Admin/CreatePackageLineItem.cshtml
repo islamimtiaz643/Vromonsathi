@@ -1,0 +1,23 @@
+﻿@model PackageLineItem
+@{
+    ViewData["Title"] = "Add Line Item"; var pkg = ViewBag.Package as TourPackage;
+}
+
+<h2 class="mb-4">Add Line Item — @pkg.Title</h2>
+<form asp-action="CreatePackageLineItem" method="post">
+    <input type="hidden" asp-for="TourPackageId" />
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+    <div class="row g-3">
+        <div class="col-md-6"><label class="form-label">Label (e.g. "Transport (Train)", "Meals")</label><input asp-for="Label" class="form-control" /></div>
+        <div class="col-md-3"><label class="form-label">Cost (৳ per person)</label><input asp-for="Cost" class="form-control" /></div>
+        <div class="col-md-3"><label class="form-label">Category</label><input asp-for="Category" class="form-control" placeholder="Transport / Meals / Hotel etc." /></div>
+        <div class="col-12">
+            <div class="form-check">
+                <input asp-for="IsMandatory" class="form-check-input" type="checkbox" />
+                <label class="form-check-label" asp-for="IsMandatory">Mandatory (included in package price, tourist must accept)</label>
+            </div>
+        </div>
+    </div>
+    <button type="submit" class="btn btn-success mt-3">Save</button>
+    <a asp-action="PackageLineItems" asp-route-packageId="@pkg.Id" class="btn btn-secondary mt-3">Cancel</a>
+</form>

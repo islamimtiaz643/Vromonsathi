@@ -1,0 +1,27 @@
+﻿@model List<TourPackage>
+@{
+    ViewData["Title"] = "Browse Packages";
+}
+
+<h2 class="mb-4">Admin-Published Tour Packages</h2>
+<p class="text-muted mb-4">Offer your hotel, transport, or other facility services against any of these packages.</p>
+
+<div class="row row-cols-1 row-cols-md-3 g-4">
+    @foreach (var p in Model)
+    {
+        <div class="col">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                    <h5>@p.Title</h5>
+                    <p class="text-muted">@(p.Destination?.Name ?? "Multi-destination") · @p.DurationDays days · Max @p.MaxGroupSize people</p>
+                    <p>৳@p.Price per person</p>
+                    <a asp-action="CreateOffer" asp-route-packageId="@p.Id" class="btn btn-success btn-sm">Offer Services</a>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+@if (!Model.Any())
+{
+    <p class="text-muted">No active packages published yet.</p>
+}

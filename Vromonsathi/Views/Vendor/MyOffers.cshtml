@@ -1,0 +1,35 @@
+﻿@model List<VendorPackageOffer>
+@{
+    ViewData["Title"] = "My Offers";
+}
+
+<div class="d-flex justify-content-between mb-3">
+    <h2>My Offers</h2>
+    <a asp-action="BrowsePackages" class="btn btn-success">+ Browse Packages to Offer On</a>
+</div>
+<div class="table-responsive">
+    <table class="table table-striped align-middle">
+        <thead><tr><th>Package</th><th>Offer</th><th>Price</th><th>Status</th><th>Action</th></tr></thead>
+        <tbody>
+            @foreach (var o in Model)
+            {
+                <tr>
+                    <td>@o.TourPackage.Title</td>
+                    <td>@o.Title</td>
+                    <td>৳@o.Price</td>
+                    <td><span class="badge bg-@(o.Status == "Approved" ? "success" : o.Status == "Rejected" ? "danger" : "warning")">@o.Status</span></td>
+                    <td>
+                        @if (o.Status == "Pending")
+                        {
+                            <a asp-action="DeleteOffer" asp-route-id="@o.Id" class="btn btn-sm btn-outline-danger" onclick="return confirm('Withdraw this offer?');">Withdraw</a>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+@if (!Model.Any())
+{
+    <p class="text-muted">No offers submitted yet.</p>
+}

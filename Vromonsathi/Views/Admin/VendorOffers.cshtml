@@ -1,0 +1,36 @@
+﻿@model List<VendorPackageOffer>
+@{
+    ViewData["Title"] = "Vendor Offers";
+}
+
+<h2 class="mb-4">Vendor Offers on Packages</h2>
+<div class="table-responsive">
+    <table class="table table-striped align-middle">
+        <thead><tr><th>Vendor</th><th>Package</th><th>Offer</th><th>Price</th><th>Status</th><th>Action</th></tr></thead>
+        <tbody>
+            @foreach (var o in Model)
+            {
+                <tr>
+                    <td>@o.VendorProfile.BusinessName</td>
+                    <td>@o.TourPackage.Title</td>
+                    <td>@o.Title</td>
+                    <td>৳@o.Price</td>
+                    <td>
+                        <span class="badge bg-@(o.Status == "Approved" ? "success" : o.Status == "Rejected" ? "danger" : "warning")">@o.Status</span>
+                    </td>
+                    <td>
+                        @if (o.Status == "Pending")
+                        {
+                            <a asp-action="ApproveOffer" asp-route-id="@o.Id" class="btn btn-sm btn-success">Approve</a>
+                            <a asp-action="RejectOffer" asp-route-id="@o.Id" class="btn btn-sm btn-danger">Reject</a>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+@if (!Model.Any())
+{
+    <p class="text-muted">No vendor offers yet.</p>
+}
