@@ -1,0 +1,34 @@
+﻿@model List<BusRoute>
+@{
+    ViewData["Title"] = "Bus Routes";
+}
+
+<h2 class="mb-4">Bus Route Oversight</h2>
+<div class="table-responsive">
+    <table class="table table-striped align-middle">
+        <thead><tr><th>Route</th><th>Vendor</th><th>Bus</th><th>Departure</th><th>Price/Seat</th><th>Status</th><th>Action</th></tr></thead>
+        <tbody>
+            @foreach (var r in Model)
+            {
+                <tr>
+                    <td>@r.OriginCity → @r.DestinationCity @(r.Destination != null ? $"({r.Destination.Name})" : "")</td>
+                    <td>@r.VendorProfile.BusinessName</td>
+                    <td>@r.BusName (@r.BusType)</td>
+                    <td>@r.DepartureTime</td>
+                    <td>৳@r.PricePerSeat</td>
+                    <td>@(r.IsActive ? "Active" : "Inactive")</td>
+                    <td>
+                        <a asp-action="ToggleBusRouteActive" asp-route-id="@r.Id" class="btn btn-sm @(r.IsActive ? "btn-outline-warning" : "btn-outline-success")">
+                            @(r.IsActive ? "Revoke" : "Reactivate")
+                        </a>
+                        <a asp-action="DeleteBusRoute" asp-route-id="@r.Id" class="btn btn-sm btn-outline-danger" onclick="return confirm('Remove this route? Any active bookings will be cancelled and refunded.');">Remove</a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+@if (!Model.Any())
+{
+    <p class="text-muted">No bus routes yet.</p>
+}

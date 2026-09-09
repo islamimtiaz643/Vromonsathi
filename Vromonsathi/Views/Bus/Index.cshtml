@@ -1,0 +1,48 @@
+﻿@model List<BusRoute>
+@{
+    ViewData["Title"] = "Bus Tickets";
+}
+
+<section>
+    <div class="wrap">
+        <div class="section-head">
+            <div>
+                <span class="tag">Travel by bus</span>
+                <h2>Find your route</h2>
+                <p>Real vendor-operated bus services with live seat availability.</p>
+            </div>
+            <form method="get" style="display:flex; gap:10px; flex-wrap:wrap;">
+                <input type="text" name="origin" placeholder="From (e.g. Dhaka)" value="@Context.Request.Query["origin"]"
+                       style="padding:10px 12px; border:1px solid var(--line); border-radius:8px; min-width:160px;" />
+                <input type="text" name="destination" placeholder="To (e.g. Sylhet)" value="@Context.Request.Query["destination"]"
+                       style="padding:10px 12px; border:1px solid var(--line); border-radius:8px; min-width:160px;" />
+                <button class="btn btn-primary" type="submit">Search</button>
+            </form>
+        </div>
+
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr><th>Route</th><th>Bus</th><th>Type</th><th>Departure</th><th class="num">Price/Seat</th><th></th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var r in Model)
+                    {
+                        <tr>
+                            <td>@r.OriginCity → @r.DestinationCity @(r.Destination != null ? $"· {r.Destination.Name}" : "")</td>
+                            <td>@r.BusName</td>
+                            <td>@r.BusType</td>
+                            <td>@r.DepartureTime</td>
+                            <td class="num">৳@r.PricePerSeat</td>
+                            <td><a asp-action="Details" asp-route-id="@r.Id" class="btn btn-primary" style="padding:6px 14px; font-size:12.5px;">Select Seats</a></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        @if (!Model.Any())
+        {
+            <p style="opacity:0.7; margin-top:20px;">No bus routes found.</p>
+        }
+    </div>
+</section>

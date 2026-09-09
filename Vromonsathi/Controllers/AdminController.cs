@@ -742,5 +742,93 @@ namespace Vromonsathi.Controllers
             }
             return RedirectToAction("PackageBookings");
         }
+    
+            // ---------- BUS ROUTES (oversight) ----------
+        public async Task<IActionResult> BusRoutes()
+        {
+            var routes = await _context.BusRoutes
+                .Include(r => r.VendorProfile)
+                .Include(r => r.Destination)
+                .OrderByDescending(r => r.CreatedAt)
+                .ToListAsync();
+
+            return View(routes);
+        }
+
+        public async Task<IActionResult> ToggleBusRouteActive(int id)
+        {
+            var route = await _context.BusRoutes
+                .Include(r => r.VendorProfile)
+                .FirstOrDefaultAsync(r => r.Id == id);
+
+            if (route != null)
+            {
+                route.IsActive = !route.IsActive;
+                await _context.SaveChangesAsync();
+
+                Vromonsathi.Helpers.NotificationHelper.AddNotification(
+                    _context, route.VendorProfile!.UserId,
+                    route.IsActive ? "Bus route reactivated" : "Bus route revoked by admin",
+                    $"Your route '{route.OriginCity} → {route.DestinationCity}' ({route.BusName}) was {(route.IsActive ? "reactivated" : "revoked and is no longer visible to travelers")} by an admin.",
+                    "/Vendor/BusRoutes");
+                await _context.SaveChangesAsync();
+            }
+            return RedirectToAction("BusRoutes");
+        }
+
+        public async Task<IActionResult> DeleteBusRoute(int id)
+        {
+            var route = await _context.BusRoutes
+                .Include(r => r.VendorProfile)
+                .FirstOrDefaultAsync(r => r.Id == id);
+
+            if (route == null) return RedirectToAction("BusRoutes");
+
+            var activeBookings = await _context.BusBookings
+                .Include(b => b.TouristUser)
+                .Where(b => b.BusRouteId == id && b.Status != "Cancelled")
+                .ToListAsync();
+
+            bool hasAnyBookingHistory = await _context.BusBookings.AnyAsync(b => b.BusRouteId == id);
+
+            if (activeBookings.Any())
+            {
+                foreach (var booking in activeBookings)
+                {
+                    booking.Status = "Cancelled";
+
+                    // Refund the tourist's seat cost back to their wallet since admin is removing the route
+                    var touristUser = booking.TouristUser;
+                    Vromonsathi.Helpers.WalletHelper.Credit(
+                        _context, touristUser!, booking.TotalPrice, "BusRouteRefund", null,
+                        $"Refund: route '{route.OriginCity} → {route.DestinationCity}' removed by admin");
+
+                    Vromonsathi.Helpers.NotificationHelper.AddNotification(
+                        _context, booking.TouristUserId,
+                        "Bus booking cancelled — refunded",
+                        $"Your booking on '{route.OriginCity} → {route.DestinationCity}' ({route.BusName}) was cancelled by an admin. ৳{booking.TotalPrice:N0} has been refunded to your wallet.",
+                        "/Tourist/MyBusBookings");
+                }
+
+                route.IsActive = false;
+                await _context.SaveChangesAsync();
+                TempData["Message"] = $"Route removed. {activeBookings.Count} affected booking(s) were cancelled and refunded to travelers' wallets; the route was deactivated instead of deleted since it has booking history.";
+                return RedirectToAction("BusRoutes");
+            }
+
+            if (hasAnyBookingHistory)
+            {
+                route.IsActive = false;
+                await _context.SaveChangesAsync();
+                TempData["Message"] = "This route has past booking history, so it can't be permanently deleted. It has been deactivated.";
+                return RedirectToAction("BusRoutes");
+            }
+
+            _context.BusRoutes.Remove(route);
+            await _context.SaveChangesAsync();
+            TempData["Message"] = "Bus route deleted.";
+            return RedirectToAction("BusRoutes");
+        }
     }
+
 }

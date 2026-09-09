@@ -1,0 +1,105 @@
+﻿@model BusRoute
+@{
+    ViewData["Title"] = "Select Seats";
+    var travelDate = (DateTime)ViewBag.TravelDate;
+    var takenSeats = (HashSet<string>)ViewBag.TakenSeats;
+    var seatCodes = Vromonsathi.Helpers.SeatMapHelper.GenerateSeatCodes(Model.TotalSeats);
+}
+
+<section>
+    <div class="wrap" style="max-width:700px;">
+        <div class="eyebrow">@Model.BusType</div>
+        <h1 style="font-size:clamp(24px,3vw,36px); color:var(--forest); margin-bottom:8px;">@Model.OriginCity → @Model.DestinationCity</h1>
+        <p style="opacity:0.75; margin-bottom:24px;">@Model.BusName · Departs @Model.DepartureTime · ৳@Model.PricePerSeat per seat</p>
+
+        <form id="dateForm" method="get" style="margin-bottom:24px; display:flex; gap:10px; align-items:end;">
+            <div>
+                <label class="mono" style="font-size:11px; text-transform:uppercase; display:block; margin-bottom:6px;">Travel Date</label>
+                <input type="date" name="date" value="@travelDate.ToString("yyyy-MM-dd")" style="padding:9px 12px; border:1px solid var(--line); border-radius:8px;" onchange="document.getElementById('dateForm').submit()" />
+            </div>
+        </form>
+
+        <h4 style="margin-bottom:14px;">Select your seat(s)</h4>
+        <div id="seatMap" style="display:grid; grid-template-columns:repeat(5, 44px); gap:10px; margin-bottom:24px;">
+            @{
+                int col = 0;
+            }
+            @foreach (var seat in seatCodes)
+            {
+                var isTaken = takenSeats.Contains(seat);
+                col++;
+                if (col == 3)
+                {
+                    <div></div> @* aisle gap *@
+                }
+                <button type="button" class="seat-btn" data-seat="@seat" @(isTaken ? "disabled" : "")
+                        style="width:44px; height:44px; border-radius:8px; border:1px solid var(--line); background:@(isTaken ? "#ccc" : "#fff"); cursor:@(isTaken ? "not-allowed" : "pointer"); font-family:'IBM Plex Mono'; font-size:11px;">
+                    @seat
+                </button>
+                if (col == 4) { col = 0; }
+            }
+        </div>
+
+        <div style="display:flex; gap:16px; font-size:12px; margin-bottom:24px;">
+            <div><span style="display:inline-block; width:12px; height:12px; background:#fff; border:1px solid var(--line); border-radius:3px; margin-right:6px;"></span>Available</div>
+            <div><span style="display:inline-block; width:12px; height:12px; background:var(--forest); border-radius:3px; margin-right:6px;"></span>Selected</div>
+            <div><span style="display:inline-block; width:12px; height:12px; background:#ccc; border-radius:3px; margin-right:6px;"></span>Booked</div>
+        </div>
+
+        <div class="stat-card" style="max-width:300px; margin-bottom:20px;">
+            <div class="label">Total</div>
+            <div class="value" id="totalPriceOut">৳0</div>
+        </div>
+
+        @if (Context.Session.GetString("Role") == "Tourist")
+        {
+            <form asp-controller="Tourist" asp-action="BookBus" method="post">
+                <input type="hidden" name="busRouteId" value="@Model.Id" />
+                <input type="hidden" name="travelDate" value="@travelDate.ToString("yyyy-MM-dd")" />
+                <input type="hidden" name="seatNumbers" id="seatNumbersInput" />
+                <button type="submit" class="btn btn-primary" id="confirmBtn" disabled>Select seats to continue</button>
+            </form>
+        }
+        else if (Context.Session.GetInt32("UserId") == null)
+        {
+            <a asp-controller="Account" asp-action="Login" class="btn btn-ghost">Login to Book</a>
+        }
+        else
+        {
+            <p style="opacity:0.7;">Only tourist accounts can book bus tickets.</p>
+        }
+    </div>
+</section>
+
+@section Scripts {
+    <script>
+        var pricePerSeat = @Model.PricePerSeat.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        var selected = [];
+        var seatButtons = document.querySelectorAll('.seat-btn:not([disabled])');
+        var totalOut = document.getElementById('totalPriceOut');
+        var confirmBtn = document.getElementById('confirmBtn');
+        var seatInput = document.getElementById('seatNumbersInput');
+
+        seatButtons.forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            var seat = btn.dataset.seat;
+            var idx = selected.indexOf(seat);
+            if (idx === -1) {
+              selected.push(seat);
+              btn.style.background = 'var(--forest)';
+              btn.style.color = '#fff';
+            } else {
+              selected.splice(idx, 1);
+              btn.style.background = '#fff';
+              btn.style.color = 'inherit';
+            }
+            totalOut.textContent = '৳' + (selected.length * pricePerSeat).toLocaleString('en-US');
+            if (confirmBtn) {
+              confirmBtn.disabled = selected.length === 0;
+              confirmBtn.textContent = selected.length === 0 ? 'Select seats to continue' : 'Book ' + selected.length + ' seat(s)';
+            }
+            if (seatInput) seatInput.value = selected.join(',');
+          });
+        });
+    </script>
+}

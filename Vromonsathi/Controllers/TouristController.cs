@@ -102,7 +102,90 @@ namespace Vromonsathi.Controllers
             TempData["Message"] = "Booking request submitted. Waiting for vendor confirmation.";
             return RedirectToAction("MyBookings");
         }
+        [HttpPost]
+        public async Task<IActionResult> BookBus(int busRouteId, DateTime travelDate, string seatNumbers)
+        {
+            var route = await _context.BusRoutes
+                .Include(r => r.VendorProfile)
+                .FirstOrDefaultAsync(r => r.Id == busRouteId && r.IsActive);
 
+            if (route == null) return NotFound();
+            if (string.IsNullOrWhiteSpace(seatNumbers))
+            {
+                TempData["Message"] = "Please select at least one seat.";
+                return RedirectToAction("Details", "Bus", new { id = busRouteId, date = travelDate.ToString("yyyy-MM-dd") });
+            }
+
+            var requestedSeats = seatNumbers.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(s => s.Trim()).ToList();
+
+            var alreadyBookedSeats = await _context.BusBookings
+                .Where(b => b.BusRouteId == busRouteId && b.TravelDate.Date == travelDate.Date && b.Status != "Cancelled")
+                .Select(b => b.SeatNumbers)
+                .ToListAsync();
+
+            var takenSeats = alreadyBookedSeats
+                .SelectMany(s => s.Split(',', StringSplitOptions.RemoveEmptyEntries))
+                .Select(s => s.Trim())
+                .ToHashSet();
+
+            if (requestedSeats.Any(s => takenSeats.Contains(s)))
+            {
+                TempData["Message"] = "One or more selected seats were just booked by someone else. Please pick different seats.";
+                return RedirectToAction("Details", "Bus", new { id = busRouteId, date = travelDate.ToString("yyyy-MM-dd") });
+            }
+
+            var totalPrice = route.PricePerSeat * requestedSeats.Count;
+            var user = await _context.Users.FindAsync(CurrentUserId);
+
+            if (!Vromonsathi.Helpers.WalletHelper.HasSufficientBalance(user!, totalPrice))
+            {
+                var shortfall = totalPrice - user!.WalletBalance;
+                TempData["Message"] = $"Your wallet balance isn't enough for {requestedSeats.Count} seat(s) (৳{totalPrice:N0}). Please recharge at least ৳{shortfall:N0}.";
+                return RedirectToAction("RechargeRequired", new { amountNeeded = shortfall, packageId = 0 });
+            }
+
+            var booking = new BusBooking
+            {
+                BusRouteId = busRouteId,
+                TouristUserId = CurrentUserId,
+                TravelDate = travelDate.Date,
+                SeatNumbers = string.Join(",", requestedSeats),
+                SeatCount = requestedSeats.Count,
+                TotalPrice = totalPrice,
+                Status = "Confirmed"
+            };
+
+            _context.BusBookings.Add(booking);
+            await _context.SaveChangesAsync();
+
+            Vromonsathi.Helpers.WalletHelper.Debit(
+                _context, user!, totalPrice, "BusTicket", null,
+                $"{requestedSeats.Count} seat(s) on {route.OriginCity} → {route.DestinationCity} ({route.BusName}), {travelDate:dd MMM yyyy}");
+
+            route.VendorProfile!.WalletBalance += totalPrice;
+
+            Vromonsathi.Helpers.NotificationHelper.AddNotification(
+                _context, route.VendorProfile.UserId,
+                "New bus booking",
+                $"{user!.FullName} booked {requestedSeats.Count} seat(s) on {route.OriginCity} → {route.DestinationCity} for {travelDate:dd MMM yyyy}. ৳{totalPrice:N0} credited to your wallet.",
+                "/Vendor/BusRoutes");
+
+            await _context.SaveChangesAsync();
+
+            TempData["Message"] = $"Booking confirmed! Seats {booking.SeatNumbers} on {route.OriginCity} → {route.DestinationCity}, {travelDate:dd MMM yyyy}. ৳{totalPrice:N0} paid from your wallet.";
+            return RedirectToAction("MyBusBookings");
+        }
+
+        public async Task<IActionResult> MyBusBookings()
+        {
+            var bookings = await _context.BusBookings
+                .Include(b => b.BusRoute)
+                .Where(b => b.TouristUserId == CurrentUserId)
+                .OrderByDescending(b => b.CreatedAt)
+                .ToListAsync();
+
+            return View(bookings);
+        }
         // ---------- BOOKING: TOUR PACKAGES (wallet-gated advance) ----------
         [HttpGet]
         public async Task<IActionResult> BookPackage(int id)
