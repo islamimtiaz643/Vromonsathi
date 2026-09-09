@@ -41,6 +41,9 @@ namespace Vromonsathi.Models
         public string? EditRequestNote { get; set; }
         public bool VendorsPaidOut { get; set; } = false;
 
+        public decimal DueAmount { get; set; } = 0;
+        public DateTime? DueDate { get; set; }
+        public bool DuePaid { get; set; } = false;
         public ICollection<BookingAddOn> AddOns { get; set; } = new List<BookingAddOn>();
     }
 }

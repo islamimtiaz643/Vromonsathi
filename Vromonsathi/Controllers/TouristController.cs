@@ -48,11 +48,9 @@ namespace Vromonsathi.Controllers
             var user = await _context.Users.FindAsync(CurrentUserId);
             ViewBag.WalletBalance = user!.WalletBalance;
 
-            var history = await _context.Bookings
-                .Include(b => b.TourPackage)
-                .Include(b => b.Listing)
-                .Where(b => b.TouristUserId == CurrentUserId && (b.WalletCreditEarned > 0 || b.WalletCreditUsed > 0))
-                .OrderByDescending(b => b.CreatedAt)
+            var history = await _context.WalletTransactions
+                .Where(t => t.UserId == CurrentUserId)
+                .OrderByDescending(t => t.CreatedAt)
                 .ToListAsync();
 
             return View(history);
@@ -105,7 +103,7 @@ namespace Vromonsathi.Controllers
             return RedirectToAction("MyBookings");
         }
 
-        // ---------- BOOKING: TOUR PACKAGES ----------
+        // ---------- BOOKING: TOUR PACKAGES (wallet-gated advance) ----------
         [HttpGet]
         public async Task<IActionResult> BookPackage(int id)
         {
@@ -132,7 +130,7 @@ namespace Vromonsathi.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> BookPackage(int packageId, DateTime startDate, int numberOfPeople, int[]? selectedOfferIds, bool useWallet)
+        public async Task<IActionResult> BookPackage(int packageId, DateTime startDate, int numberOfPeople, int[]? selectedOfferIds)
         {
             var package = await _context.TourPackages
                 .Include(p => p.LineItems)
@@ -172,24 +170,19 @@ namespace Vromonsathi.Controllers
                 return RedirectToAction("BookPackage", new { id = packageId });
             }
 
-            var unspentPerPerson = flexibleBudget - addOnCostPerPerson;
-            var totalUnspent = unspentPerPerson * numberOfPeople;
+            // Real invoice = mandatory cost + chosen add-ons only. The unused flexible
+            // budget is never charged, so there's nothing to "refund" to the wallet.
+            var actualChargePerPerson = mandatoryTotal + addOnCostPerPerson;
+            var grossTotal = actualChargePerPerson * numberOfPeople;
+            var requiredAdvance = Math.Min(1500m * numberOfPeople, grossTotal);
+            var dueAmount = grossTotal - requiredAdvance;
+            var dueDate = startDate.AddHours(-48);
 
-            decimal walletUsed = 0;
-            var basePrice = package.Price * numberOfPeople;
-            var addOnTotal = addOnCostPerPerson * numberOfPeople;
-            var grandTotal = basePrice + addOnTotal;
-
-            if (useWallet && user!.WalletBalance > 0)
+            if (!Vromonsathi.Helpers.WalletHelper.HasSufficientBalance(user!, requiredAdvance))
             {
-                walletUsed = Math.Min(user.WalletBalance, grandTotal);
-                user.WalletBalance -= walletUsed;
-                grandTotal -= walletUsed;
-            }
-
-            if (totalUnspent > 0)
-            {
-                user!.WalletBalance += totalUnspent;
+                var shortfall = requiredAdvance - user!.WalletBalance;
+                TempData["Message"] = $"Your wallet balance (৳{user.WalletBalance:N0}) isn't enough to cover the ৳{requiredAdvance:N0} advance for {numberOfPeople} people. Please recharge at least ৳{shortfall:N0}, then come back and book again.";
+                return RedirectToAction("RechargeRequired", new { amountNeeded = shortfall, packageId });
             }
 
             var booking = new Booking
@@ -199,16 +192,24 @@ namespace Vromonsathi.Controllers
                 StartDate = startDate,
                 EndDate = startDate.AddDays(package.DurationDays),
                 NumberOfPeople = numberOfPeople,
-                TotalPrice = grandTotal,
-                Status = "Pending",
-                WalletCreditUsed = walletUsed,
-                WalletCreditEarned = totalUnspent,
-                RequiredAdvance = 1500m * numberOfPeople,
-                AdvancePaid = false
+                TotalPrice = grossTotal,
+                Status = "Confirmed",
+                RequiredAdvance = requiredAdvance,
+                AdvancePaid = true,
+                DueAmount = dueAmount,
+                DueDate = dueDate,
+                DuePaid = false,
+                WalletCreditEarned = 0
             };
 
             _context.Bookings.Add(booking);
             await _context.SaveChangesAsync();
+
+            Vromonsathi.Helpers.WalletHelper.Debit(
+     _context, user!, requiredAdvance, "BookingAdvance", booking.Id,
+     $"Advance for '{package.Title}' ({numberOfPeople} people)");
+
+            booking.WalletCreditUsed = requiredAdvance;
 
             foreach (var offer in chosenOffers)
             {
@@ -226,15 +227,92 @@ namespace Vromonsathi.Controllers
                 Vromonsathi.Helpers.NotificationHelper.AddNotification(
                     _context, admin.Id,
                     "New package booking",
-                    $"{HttpContext.Session.GetString("FullName")} booked '{package.Title}' for {numberOfPeople} people.",
+                    $"{HttpContext.Session.GetString("FullName")} booked '{package.Title}' for {numberOfPeople} people. Advance paid from wallet.",
                     "/Admin/PackageBookings");
             }
 
             await _context.SaveChangesAsync();
 
-            TempData["Message"] = $"Booking submitted. A ৳{booking.RequiredAdvance:N0} advance payment is required to confirm your spot.";
+            TempData["Message"] = dueAmount > 0
+                ? $"Booking confirmed. ৳{requiredAdvance:N0} advance paid from your wallet. Remaining ৳{dueAmount:N0} is due by {dueDate:dd MMM yyyy, h:mm tt} (48 hours before your trip)."
+                : "Booking confirmed. Advance paid from your wallet.";
 
-            return RedirectToAction("PayAdvance", new { bookingId = booking.Id });
+            return RedirectToAction("Receipt", new { bookingId = booking.Id });
+        }
+
+        public IActionResult RechargeRequired(decimal amountNeeded, int packageId)
+        {
+            ViewBag.AmountNeeded = amountNeeded;
+            ViewBag.PackageId = packageId;
+            return View();
+        }
+
+        // ---------- DUE AMOUNT SETTLEMENT (wallet-gated) ----------
+        [HttpGet]
+        public async Task<IActionResult> PayDue(int bookingId)
+        {
+            var booking = await _context.Bookings
+                .Include(b => b.TourPackage)
+                .FirstOrDefaultAsync(b => b.Id == bookingId && b.TouristUserId == CurrentUserId);
+
+            if (booking == null || booking.TourPackageId == null) return NotFound();
+            if (booking.DuePaid || booking.DueAmount <= 0)
+            {
+                TempData["Message"] = "No due amount remaining on this booking.";
+                return RedirectToAction("MyBookings");
+            }
+
+            var user = await _context.Users.FindAsync(CurrentUserId);
+            ViewBag.WalletBalance = user!.WalletBalance;
+
+            return View(booking);
+        }
+
+        [HttpPost]
+        [ActionName("PayDue")]
+        public async Task<IActionResult> PayDueConfirm(int bookingId)
+        {
+            var booking = await _context.Bookings
+                .Include(b => b.TourPackage)
+                .FirstOrDefaultAsync(b => b.Id == bookingId && b.TouristUserId == CurrentUserId);
+
+            if (booking == null) return NotFound();
+            if (booking.DuePaid || booking.DueAmount <= 0)
+            {
+                TempData["Message"] = "No due amount remaining on this booking.";
+                return RedirectToAction("MyBookings");
+            }
+
+            var user = await _context.Users.FindAsync(CurrentUserId);
+
+            if (!Vromonsathi.Helpers.WalletHelper.HasSufficientBalance(user!, booking.DueAmount))
+            {
+                var shortfall = booking.DueAmount - user!.WalletBalance;
+                TempData["Message"] = $"Your wallet balance isn't enough to cover the ৳{booking.DueAmount:N0} due amount. Please recharge at least ৳{shortfall:N0}.";
+                return RedirectToAction("RechargeRequired", new { amountNeeded = shortfall, packageId = booking.TourPackageId });
+            }
+
+            Vromonsathi.Helpers.WalletHelper.Debit(
+                _context, user!, booking.DueAmount, "DueSettlement", booking.Id,
+                $"Due settlement for '{booking.TourPackage!.Title}'");
+
+            booking.WalletCreditUsed += booking.DueAmount;
+            booking.DuePaid = true;
+
+            var admins = await _context.Users.Where(u => u.Role == "Admin").ToListAsync();
+            foreach (var admin in admins)
+            {
+                Vromonsathi.Helpers.NotificationHelper.AddNotification(
+                    _context, admin.Id,
+                    "Due amount settled",
+                    $"{HttpContext.Session.GetString("FullName")} paid the remaining ৳{booking.DueAmount:N0} due for '{booking.TourPackage!.Title}'.",
+                    "/Admin/PackageBookings");
+            }
+
+            await _context.SaveChangesAsync();
+
+            TempData["Message"] = "Due amount paid from your wallet. Your booking is fully settled.";
+            return RedirectToAction("Receipt", new { bookingId = booking.Id });
         }
 
         // ---------- BOOKING EDIT REQUEST ----------
@@ -295,69 +373,6 @@ namespace Vromonsathi.Controllers
             return RedirectToAction("MyBookings");
         }
 
-        // ---------- ADVANCE PAYMENT (simulated) ----------
-        [HttpGet]
-        public async Task<IActionResult> PayAdvance(int bookingId)
-        {
-            var booking = await _context.Bookings
-                .Include(b => b.TourPackage)
-                .FirstOrDefaultAsync(b => b.Id == bookingId && b.TouristUserId == CurrentUserId);
-
-            if (booking == null) return NotFound();
-            if (booking.AdvancePaid)
-            {
-                TempData["Message"] = "Advance already paid for this booking.";
-                return RedirectToAction("MyBookings");
-            }
-
-            return View(booking);
-        }
-
-        [HttpPost]
-        public async Task<IActionResult> PayAdvance(Vromonsathi.ViewModels.AdvancePaymentViewModel model)
-        {
-            var booking = await _context.Bookings
-                .Include(b => b.TourPackage)
-                .Include(b => b.TouristUser)
-                .FirstOrDefaultAsync(b => b.Id == model.BookingId && b.TouristUserId == CurrentUserId);
-
-            if (booking == null) return NotFound();
-
-            if (!ModelState.IsValid)
-                return View("PayAdvance", booking);
-
-            // SIMULATED payment gateway — no real bKash/Nagad/card integration.
-            booking.AdvancePaid = true;
-            booking.Status = "Confirmed";
-
-            _context.WalletTransactions.Add(new WalletTransaction
-            {
-                UserId = CurrentUserId,
-                Amount = booking.RequiredAdvance,
-                Type = "BookingAdvance",
-                PaymentMethod = model.PaymentMethod,
-                PhoneNumber = model.PhoneNumber,
-                Status = "Completed",
-                BookingId = booking.Id,
-                ReceiptNote = $"Advance payment for '{booking.TourPackage!.Title}' ({booking.NumberOfPeople} people)"
-            });
-
-            var admins = await _context.Users.Where(u => u.Role == "Admin").ToListAsync();
-            foreach (var admin in admins)
-            {
-                Vromonsathi.Helpers.NotificationHelper.AddNotification(
-                    _context, admin.Id,
-                    "Advance payment received",
-                    $"{booking.TouristUser!.FullName} paid ৳{booking.RequiredAdvance:N0} advance for '{booking.TourPackage!.Title}'.",
-                    "/Admin/PackageBookings");
-            }
-
-            await _context.SaveChangesAsync();
-
-            TempData["Message"] = "Payment received. Your booking is confirmed.";
-            return RedirectToAction("Receipt", new { bookingId = booking.Id });
-        }
-
         public async Task<IActionResult> Receipt(int bookingId)
         {
             var booking = await _context.Bookings
@@ -393,18 +408,9 @@ namespace Vromonsathi.Controllers
             if (user == null) return NotFound();
 
             // SIMULATED payment gateway — no real bKash/Nagad/card integration.
-            user.WalletBalance += model.Amount;
-
-            _context.WalletTransactions.Add(new WalletTransaction
-            {
-                UserId = CurrentUserId,
-                Amount = model.Amount,
-                Type = "Deposit",
-                PaymentMethod = model.PaymentMethod,
-                PhoneNumber = model.PhoneNumber,
-                Status = "Completed",
-                ReceiptNote = $"Wallet top-up via {model.PaymentMethod}"
-            });
+            Vromonsathi.Helpers.WalletHelper.Credit(
+                _context, user, model.Amount, "Deposit", null,
+                $"Wallet top-up via {model.PaymentMethod} ({model.PhoneNumber})");
 
             await _context.SaveChangesAsync();
 

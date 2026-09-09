@@ -1,0 +1,27 @@
+﻿@model Booking
+@{
+    ViewData["Title"] = "Pay Due Amount";
+}
+
+<div class="wrap" style="padding:40px 28px;">
+    <h2 style="margin-bottom:8px;">Pay Remaining Due</h2>
+    <p style="opacity:0.75; margin-bottom:8px;">'@Model.TourPackage!.Title' · @Model.NumberOfPeople people</p>
+    <p style="margin-bottom:24px;">
+        Due amount: <strong>৳@Model.DueAmount.ToString("N0")</strong>
+        @if (Model.DueDate != null)
+        {
+            <span> — due by @Model.DueDate.Value.ToString("dd MMM yyyy, h:mm tt")</span>
+        }
+    </p>
+
+    <div class="stat-card" style="max-width:260px; margin-bottom:20px;">
+        <div class="label">Wallet Balance</div>
+        <div class="value">৳@(((decimal)ViewBag.WalletBalance).ToString("N0"))</div>
+    </div>
+
+    <form asp-action="PayDue" method="post" style="max-width:420px;">
+        <input type="hidden" name="bookingId" value="@Model.Id" />
+        <button type="submit" class="btn btn-primary" style="width:100%;">Pay ৳@Model.DueAmount.ToString("N0") from Wallet</button>
+        <a asp-action="MyBookings" class="btn btn-ghost" style="width:100%; margin-top:8px; text-align:center;">Cancel</a>
+    </form>
+</div>

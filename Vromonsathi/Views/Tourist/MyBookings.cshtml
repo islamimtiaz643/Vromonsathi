@@ -30,10 +30,22 @@
                                 <a asp-action="PayAdvance" asp-route-bookingId="@b.Id" class="btn btn-sm btn-danger">Pay Advance ৳@b.RequiredAdvance.ToString("N0")</a>
                             </div>
                         }
-                       @if (b.TourPackageId != null && b.AdvancePaid)
-{
-    <div style="margin-top:6px;"><a asp-action="Receipt" asp-route-bookingId="@b.Id" style="font-size:11.5px;">View Receipt</a></div>
-}
+                        @if (b.TourPackageId != null && b.AdvancePaid)
+                        {
+                            <div style="margin-top:6px;"><a asp-action="Receipt" asp-route-bookingId="@b.Id" style="font-size:11.5px;">View Receipt</a></div>
+                        }
+                        @if (b.TourPackageId != null && b.DueAmount > 0 && !b.DuePaid)
+                        {
+                            <div style="margin-top:4px;">
+                                <a asp-action="PayDue" asp-route-bookingId="@b.Id" class="btn btn-sm btn-outline-danger">
+                                    Pay Due ৳@b.DueAmount.ToString("N0") @(b.DueDate != null ? $"(by {b.DueDate.Value:dd MMM})" : "")
+                                </a>
+                            </div>
+                        }
+                        @if (b.TourPackageId != null && b.DuePaid && b.DueAmount > 0)
+                        {
+                            <div style="margin-top:4px;"><span class="badge badge-confirmed" style="font-size:10px;">Fully Paid</span></div>
+                        }
 @if (b.TourPackageId != null && b.Status == "Confirmed" && !b.EditRequested)
 {
     <div style="margin-top:4px;"><a asp-action="RequestEdit" asp-route-bookingId="@b.Id" style="font-size:11.5px;">Request to add facilities</a></div>

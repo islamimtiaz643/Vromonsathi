@@ -2,6 +2,15 @@
 @{
     ViewData["Title"] = "Payment Receipt"; var txn = ViewBag.Transaction as WalletTransaction;
 }
+<style media="print">
+    header, footer, #chatWidget, .btn {
+        display: none !important;
+    }
+
+    body {
+        background: #fff !important;
+    }
+</style>
 
 <div class="wrap" style="padding:40px 28px; max-width:600px;">
     <div class="fac-card" style="border-color:var(--forest);">
@@ -41,7 +50,8 @@
             Simulated receipt for demonstration purposes — Vromonsathi Smart Tourism Platform
         </p>
 
-        <div style="text-align:center; margin-top:16px;">
+        <div style="text-align:center; margin-top:16px; display:flex; gap:10px; justify-content:center;">
+            <button onclick="window.print()" class="btn btn-ghost" type="button">🖨 Print Receipt</button>
             <a asp-action="MyBookings" class="btn btn-primary">Back to My Bookings</a>
         </div>
     </div>

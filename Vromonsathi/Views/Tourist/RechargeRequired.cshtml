@@ -1,0 +1,16 @@
+﻿@{
+    ViewData["Title"] = "Recharge Required";
+}
+
+<div class="wrap" style="padding:60px 28px; max-width:480px; text-align:center;">
+    <div class="fac-card" style="border-color:var(--red);">
+        <h2 style="color:var(--red); margin-bottom:10px;">Wallet Recharge Needed</h2>
+        <p style="opacity:0.8; margin-bottom:20px;">
+            Your wallet balance isn't enough to cover this payment.
+            You need at least <strong>৳@(((decimal)ViewBag.AmountNeeded).ToString("N0"))</strong> more.
+        </p>
+        <a asp-action="Deposit" class="btn btn-primary" style="width:100%; margin-bottom:10px;">Recharge Wallet</a>
+        <a asp-controller="Home" asp-action="Index" class="btn btn-ghost" style="width:100%;">Back to Home</a>
+        <p style="font-size:11.5px; opacity:0.6; margin-top:16px;">After recharging, return to the package and book again.</p>
+    </div>
+</div>

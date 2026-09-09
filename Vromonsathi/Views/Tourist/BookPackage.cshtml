@@ -69,15 +69,9 @@
             <p style="opacity:0.7; margin:20px 0;">No optional vendor add-ons available for this package yet. Your full flexible budget (৳@(((decimal)ViewBag.FlexibleBudget).ToString("N0")) per person) will be saved to your wallet.</p>
         }
 
-        @if ((decimal)ViewBag.WalletBalance > 0)
-        {
-            <div class="field">
-                <label class="chip" style="justify-content:flex-start;">
-                    <input type="checkbox" name="useWallet" value="true" />
-                    <span style="margin-left:8px;">Use my wallet balance (৳@(((decimal)ViewBag.WalletBalance).ToString("N0"))) toward this booking</span>
-                </label>
-            </div>
-        }
+        <div class="alert-box">
+            Your wallet balance (৳@(((decimal)ViewBag.WalletBalance).ToString("N0"))) will be used to pay a ৳1,500-per-person advance now. The remaining balance is due 48 hours before your trip and is also paid from your wallet. If your balance is too low, you'll be sent to recharge before the booking is confirmed.
+        </div>
 
         <button type="submit" class="btn btn-primary" style="margin-top:10px;">Confirm Booking Request</button>
         <a asp-controller="Home" asp-action="Index" class="btn btn-ghost">Cancel</a>

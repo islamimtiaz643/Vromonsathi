@@ -1,4 +1,4 @@
-﻿@model List<Booking>
+﻿@model List<WalletTransaction>
 @{
     ViewData["Title"] = "My Wallet";
 }
@@ -16,29 +16,31 @@
         <div><span class="tag">History</span><h2 style="font-size:20px;">Wallet Activity</h2></div>
     </div>
 
-    <div class="table-wrap">
-        <table>
-            <thead><tr><th>Booking</th><th>Date</th><th class="num">Credit Earned</th><th class="num">Credit Used</th></tr></thead>
-            <tbody>
-                @foreach (var b in Model)
-                {
-                    var itemTitle = b.TourPackage?.Title ?? b.Listing?.Title ?? "—";
-                    <tr>
-                        <td>@itemTitle</td>
-                        <td>@b.CreatedAt.ToString("dd MMM yyyy")</td>
-                        <td class="num" style="color:@(b.WalletCreditEarned > 0 ? "var(--forest)" : "inherit");">
-                            @(b.WalletCreditEarned > 0 ? $"+৳{b.WalletCreditEarned:N0}" : "—")
-                        </td>
-                        <td class="num" style="color:@(b.WalletCreditUsed > 0 ? "var(--red)" : "inherit");">
-                            @(b.WalletCreditUsed > 0 ? $"-৳{b.WalletCreditUsed:N0}" : "—")
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-    </div>
-    @if (!Model.Any())
-    {
-        <p style="opacity:0.7; margin-top:16px;">No wallet activity yet. Unused flexible budget from package bookings gets saved here automatically.</p>
-    }
+   
+<div class="table-wrap">
+    <table>
+        <thead><tr><th>Note</th><th>Type</th><th>Date</th><th class="num">Amount</th></tr></thead>
+        <tbody>
+        @{
+            var creditTypes = new[] { "Deposit", "FlexibleBudgetCredit" };
+        }
+        @foreach (var t in Model)
+        {
+            var isCredit = creditTypes.Contains(t.Type);
+            <tr>
+                <td>@t.ReceiptNote</td>
+                <td>@t.Type</td>
+                <td>@t.CreatedAt.ToString("dd MMM yyyy, h:mm tt")</td>
+                <td class="num" style="color:@(isCredit ? "var(--forest)" : "var(--red)");">
+                    @(isCredit ? "+" : "-")৳@t.Amount.ToString("N0")
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>
+@if (!Model.Any())
+{
+    <p style="opacity:0.7; margin-top:16px;">No wallet activity yet.</p>
+}
 </div>

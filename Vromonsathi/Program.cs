@@ -4,11 +4,14 @@ AppContext.SetSwitch("Switch.Microsoft.Data.SqlClient.UseManagedNetworkingOnWind
 
 var builder = WebApplication.CreateBuilder(args);
 
+// MVC
 builder.Services.AddControllersWithViews();
 
+// Database
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+// Session (needed for manual authentication)
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession(options =>
 {
@@ -17,8 +20,13 @@ builder.Services.AddSession(options =>
     options.Cookie.IsEssential = true;
 });
 
+// HttpContextAccessor so we can read session from anywhere (helpers, views)
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<Vromonsathi.Services.IBudgetCalculatorService, Vromonsathi.Services.BudgetCalculatorService>();
+
+// Chatbot (Groq API)
+builder.Services.AddHttpClient();
+builder.Services.AddScoped<Vromonsathi.Services.IChatBotService, Vromonsathi.Services.ChatBotService>();
 
 var app = builder.Build();
 
@@ -33,13 +41,14 @@ app.UseStaticFiles();
 
 app.UseRouting();
 
-app.UseSession();
+app.UseSession();          // must be before UseAuthorization / MapControllerRoute
 app.UseAuthorization();
 
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
 
+// Seed default Admin account + sample data
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();

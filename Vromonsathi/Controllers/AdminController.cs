@@ -120,7 +120,13 @@ namespace Vromonsathi.Controllers
         [HttpPost]
         public async Task<IActionResult> CreateDestination(Destination model, IFormFile? imageFile)
         {
-            if (!ModelState.IsValid) return View(model);
+            if (!ModelState.IsValid)
+            {
+                ViewBag.Divisions = Vromonsathi.Helpers.BangladeshData.Divisions;
+                ViewBag.Districts = Vromonsathi.Helpers.BangladeshData.Districts;
+                ViewBag.Categories = Vromonsathi.Helpers.BangladeshData.Categories;
+                return View(model);
+            }
 
             if (imageFile != null && imageFile.Length > 0)
             {
@@ -148,7 +154,13 @@ namespace Vromonsathi.Controllers
         [HttpPost]
         public async Task<IActionResult> EditDestination(Destination model, IFormFile? imageFile)
         {
-            if (!ModelState.IsValid) return View(model);
+            if (!ModelState.IsValid)
+            {
+                ViewBag.Divisions = Vromonsathi.Helpers.BangladeshData.Divisions;
+                ViewBag.Districts = Vromonsathi.Helpers.BangladeshData.Districts;
+                ViewBag.Categories = Vromonsathi.Helpers.BangladeshData.Categories;
+                return View(model);
+            }
 
             if (imageFile != null && imageFile.Length > 0)
             {
@@ -494,58 +506,6 @@ namespace Vromonsathi.Controllers
             return RedirectToAction("TourPackages");
         }
 
-        // ---------- PACKAGE BOOKINGS ----------
-        public async Task<IActionResult> PackageBookings()
-        {
-            var bookings = await _context.Bookings
-                .Include(b => b.TouristUser)
-                .Include(b => b.TourPackage)
-                .Where(b => b.TourPackageId != null)
-                .OrderByDescending(b => b.CreatedAt)
-                .ToListAsync();
-
-            return View(bookings);
-        }
-
-        public async Task<IActionResult> UpdatePackageBookingStatus(int id, string status)
-        {
-            var booking = await _context.Bookings
-                .Include(b => b.TourPackage)
-                .Include(b => b.AddOns).ThenInclude(a => a.VendorPackageOffer).ThenInclude(o => o!.VendorProfile)
-                .FirstOrDefaultAsync(b => b.Id == id && b.TourPackageId != null);
-
-            if (booking != null)
-            {
-                booking.Status = status;
-
-                if (status == "Confirmed" && !booking.VendorsPaidOut && booking.AddOns.Any())
-                {
-                    foreach (var addOn in booking.AddOns)
-                    {
-                        var vendorProfile = addOn.VendorPackageOffer!.VendorProfile!;
-                        var payout = addOn.UnitPrice * booking.NumberOfPeople;
-                        vendorProfile.WalletBalance += payout;
-
-                        Vromonsathi.Helpers.NotificationHelper.AddNotification(
-                            _context, vendorProfile.UserId,
-                            "Payment received",
-                            $"You received ৳{payout:N0} for '{addOn.VendorPackageOffer.Title}' on a confirmed booking.",
-                            "/Vendor/MyWallet");
-                    }
-                    booking.VendorsPaidOut = true;
-                }
-
-                Vromonsathi.Helpers.NotificationHelper.AddNotification(
-                    _context, booking.TouristUserId,
-                    $"Package booking {status.ToLower()}",
-                    $"Your booking for '{booking.TourPackage!.Title}' is now {status}.",
-                    "/Tourist/MyBookings");
-
-                await _context.SaveChangesAsync();
-            }
-            return RedirectToAction("PackageBookings");
-        }
-
         // ---------- PACKAGE LINE ITEMS (mandatory/optional cost breakdown) ----------
         public async Task<IActionResult> PackageLineItems(int packageId)
         {
@@ -653,6 +613,7 @@ namespace Vromonsathi.Controllers
             return RedirectToAction("VendorOffers");
         }
 
+        // ---------- ADMIN EDITS A BOOKING'S ADD-ONS (post edit-request) ----------
         [HttpGet]
         public async Task<IActionResult> EditBookingAddOns(int bookingId)
         {
@@ -700,6 +661,7 @@ namespace Vromonsathi.Controllers
 
                     var addCost = offer.Price * booking.NumberOfPeople;
                     booking.TotalPrice += addCost;
+                    booking.DueAmount += addCost;
 
                     // Pay vendor immediately for this add-on since the booking is already confirmed
                     if (booking.Status == "Confirmed" || booking.Status == "Completed")
@@ -728,8 +690,57 @@ namespace Vromonsathi.Controllers
             TempData["Message"] = "Booking updated.";
             return RedirectToAction("PackageBookings");
         }
+
+        // ---------- PACKAGE BOOKINGS ----------
+        public async Task<IActionResult> PackageBookings()
+        {
+            var bookings = await _context.Bookings
+                .Include(b => b.TouristUser)
+                .Include(b => b.TourPackage)
+                .Where(b => b.TourPackageId != null)
+                .OrderByDescending(b => b.CreatedAt)
+                .ToListAsync();
+
+            return View(bookings);
+        }
+
+        public async Task<IActionResult> UpdatePackageBookingStatus(int id, string status)
+        {
+            var booking = await _context.Bookings
+                .Include(b => b.TourPackage)
+                .Include(b => b.AddOns).ThenInclude(a => a.VendorPackageOffer).ThenInclude(o => o!.VendorProfile)
+                .FirstOrDefaultAsync(b => b.Id == id && b.TourPackageId != null);
+
+            if (booking != null)
+            {
+                booking.Status = status;
+
+                if (status == "Confirmed" && !booking.VendorsPaidOut && booking.AddOns.Any())
+                {
+                    foreach (var addOn in booking.AddOns)
+                    {
+                        var vendorProfile = addOn.VendorPackageOffer!.VendorProfile!;
+                        var payout = addOn.UnitPrice * booking.NumberOfPeople;
+                        vendorProfile.WalletBalance += payout;
+
+                        Vromonsathi.Helpers.NotificationHelper.AddNotification(
+                            _context, vendorProfile.UserId,
+                            "Payment received",
+                            $"You received ৳{payout:N0} for '{addOn.VendorPackageOffer.Title}' on a confirmed booking.",
+                            "/Vendor/MyWallet");
+                    }
+                    booking.VendorsPaidOut = true;
+                }
+
+                Vromonsathi.Helpers.NotificationHelper.AddNotification(
+                    _context, booking.TouristUserId,
+                    $"Package booking {status.ToLower()}",
+                    $"Your booking for '{booking.TourPackage!.Title}' is now {status}.",
+                    "/Tourist/MyBookings");
+
+                await _context.SaveChangesAsync();
+            }
+            return RedirectToAction("PackageBookings");
+        }
     }
 }
-
-
-    
