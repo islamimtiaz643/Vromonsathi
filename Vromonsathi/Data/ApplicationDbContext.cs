@@ -27,7 +27,10 @@ namespace Vromonsathi.Data
         public DbSet<VendorPackageOffer> VendorPackageOffers { get; set; }
         public DbSet<BookingAddOn> BookingAddOns { get; set; }
         
+       
         public DbSet<WalletTransaction> WalletTransactions { get; set; }
+        public DbSet<BusRoute> BusRoutes { get; set; }
+        public DbSet<BusBooking> BusBookings { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -148,6 +151,29 @@ namespace Vromonsathi.Data
                 .WithMany()
                 .HasForeignKey(w => w.BookingId)
                 .OnDelete(DeleteBehavior.SetNull);
+            modelBuilder.Entity<BusRoute>()
+    .HasOne(r => r.VendorProfile)
+    .WithMany()
+    .HasForeignKey(r => r.VendorProfileId)
+    .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<BusRoute>()
+                .HasOne(r => r.Destination)
+                .WithMany()
+                .HasForeignKey(r => r.DestinationId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            modelBuilder.Entity<BusBooking>()
+                .HasOne(b => b.BusRoute)
+                .WithMany(r => r.Bookings)
+                .HasForeignKey(b => b.BusRouteId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<BusBooking>()
+                .HasOne(b => b.TouristUser)
+                .WithMany()
+                .HasForeignKey(b => b.TouristUserId)
+                .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }

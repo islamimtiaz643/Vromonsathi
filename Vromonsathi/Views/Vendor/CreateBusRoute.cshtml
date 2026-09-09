@@ -1,0 +1,37 @@
+﻿@model BusRoute
+@{
+    ViewData["Title"] = "Add Bus Route";
+}
+
+<h2 class="mb-4">Add Bus Route</h2>
+<form asp-action="CreateBusRoute" method="post">
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+    <div class="row g-3">
+        <div class="col-md-4"><label class="form-label">Origin City</label><input asp-for="OriginCity" class="form-control" placeholder="Dhaka" /></div>
+        <div class="col-md-4"><label class="form-label">Destination City</label><input asp-for="DestinationCity" class="form-control" placeholder="Sreemangal" /></div>
+        <div class="col-md-4">
+            <label class="form-label">Link to Destination (optional)</label>
+            <select asp-for="DestinationId" class="form-select">
+                <option value="">-- Not linked --</option>
+                @foreach (var d in (List<Destination>)ViewBag.Destinations)
+                {
+                    <option value="@d.Id">@d.Name (@d.District)</option>
+                }
+            </select>
+        </div>
+        <div class="col-md-4"><label class="form-label">Bus Name</label><input asp-for="BusName" class="form-control" placeholder="Green Line" /></div>
+        <div class="col-md-4">
+            <label class="form-label">Bus Type</label>
+            <select asp-for="BusType" class="form-select">
+                <option value="Non-AC">Non-AC</option>
+                <option value="AC">AC</option>
+                <option value="Sleeper">Sleeper</option>
+            </select>
+        </div>
+        <div class="col-md-4"><label class="form-label">Departure Time</label><input asp-for="DepartureTime" type="time" class="form-control" /></div>
+        <div class="col-md-4"><label class="form-label">Price per Seat (৳)</label><input asp-for="PricePerSeat" class="form-control" /></div>
+        <div class="col-md-4"><label class="form-label">Total Seats</label><input asp-for="TotalSeats" class="form-control" value="32" /></div>
+    </div>
+    <button type="submit" class="btn btn-success mt-3">Save</button>
+    <a asp-action="BusRoutes" class="btn btn-secondary mt-3">Cancel</a>
+</form>

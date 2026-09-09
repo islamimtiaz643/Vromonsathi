@@ -28,9 +28,9 @@ namespace Vromonsathi.Controllers
     .ToListAsync();
 
             var destIdsWithPackages = await _context.TourPackages
-                .Where(p => p.IsActive && p.DestinationId != null)
-                .Select(p => new { p.DestinationId, p.Id })
-                .ToListAsync();
+     .Where(p => p.IsActive && p.IsExclusive && p.DestinationId != null)
+     .Select(p => new { p.DestinationId, p.Id })
+     .ToListAsync();
 
             ViewBag.ExclusiveTourByDestination = destIdsWithPackages
                 .GroupBy(x => x.DestinationId!.Value)

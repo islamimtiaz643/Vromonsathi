@@ -339,5 +339,134 @@ namespace Vromonsathi.Controllers
 
             return View(history);
         }
+
+        // ---------- BUS ROUTES ----------
+        public async Task<IActionResult> BusRoutes()
+        {
+            var vendor = await GetCurrentVendorProfile();
+            if (vendor == null) return RedirectToAction("Login", "Account");
+
+            var routes = await _context.BusRoutes
+                .Include(r => r.Destination)
+                .Where(r => r.VendorProfileId == vendor.Id)
+                .OrderByDescending(r => r.CreatedAt)
+                .ToListAsync();
+
+            return View(routes);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> CreateBusRoute()
+        {
+            var vendor = await GetCurrentVendorProfile();
+            if (vendor == null || !vendor.IsApproved)
+            {
+                TempData["Message"] = "Your vendor account must be approved before adding bus routes.";
+                return RedirectToAction("Dashboard");
+            }
+
+            ViewBag.Destinations = await _context.Destinations.OrderBy(d => d.Name).ToListAsync();
+            return View();
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> CreateBusRoute(BusRoute model)
+        {
+            var vendor = await GetCurrentVendorProfile();
+            if (vendor == null || !vendor.IsApproved) return RedirectToAction("Dashboard");
+
+            ModelState.Remove("VendorProfile");
+            ModelState.Remove("Destination");
+            if (!ModelState.IsValid)
+            {
+                ViewBag.Destinations = await _context.Destinations.OrderBy(d => d.Name).ToListAsync();
+                return View(model);
+            }
+
+            model.VendorProfileId = vendor.Id;
+            _context.BusRoutes.Add(model);
+            await _context.SaveChangesAsync();
+            TempData["Message"] = "Bus route added.";
+            return RedirectToAction("BusRoutes");
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> EditBusRoute(int id)
+        {
+            var vendor = await GetCurrentVendorProfile();
+            var route = await _context.BusRoutes.FirstOrDefaultAsync(r => r.Id == id && r.VendorProfileId == vendor!.Id);
+            if (route == null) return NotFound();
+
+            ViewBag.Destinations = await _context.Destinations.OrderBy(d => d.Name).ToListAsync();
+            return View(route);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> EditBusRoute(BusRoute model)
+        {
+            var vendor = await GetCurrentVendorProfile();
+            var existing = await _context.BusRoutes.FirstOrDefaultAsync(r => r.Id == model.Id && r.VendorProfileId == vendor!.Id);
+            if (existing == null) return NotFound();
+
+            ModelState.Remove("VendorProfile");
+            ModelState.Remove("Destination");
+            if (!ModelState.IsValid)
+            {
+                ViewBag.Destinations = await _context.Destinations.OrderBy(d => d.Name).ToListAsync();
+                return View(model);
+            }
+
+            existing.OriginCity = model.OriginCity;
+            existing.DestinationCity = model.DestinationCity;
+            existing.BusName = model.BusName;
+            existing.BusType = model.BusType;
+            existing.DepartureTime = model.DepartureTime;
+            existing.PricePerSeat = model.PricePerSeat;
+            existing.TotalSeats = model.TotalSeats;
+            existing.DestinationId = model.DestinationId;
+            existing.IsActive = model.IsActive;
+
+            await _context.SaveChangesAsync();
+            TempData["Message"] = "Bus route updated.";
+            return RedirectToAction("BusRoutes");
+        }
+
+        public async Task<IActionResult> DeleteBusRoute(int id)
+        {
+            var vendor = await GetCurrentVendorProfile();
+            var route = await _context.BusRoutes.FirstOrDefaultAsync(r => r.Id == id && r.VendorProfileId == vendor!.Id);
+            if (route == null) return RedirectToAction("BusRoutes");
+
+            bool hasBookings = await _context.BusBookings.AnyAsync(b => b.BusRouteId == id && b.Status != "Cancelled");
+            if (hasBookings)
+            {
+                route.IsActive = false;
+                await _context.SaveChangesAsync();
+                TempData["Message"] = "This route has active bookings, so it was deactivated instead of deleted.";
+                return RedirectToAction("BusRoutes");
+            }
+
+            _context.BusRoutes.Remove(route);
+            await _context.SaveChangesAsync();
+            TempData["Message"] = "Bus route deleted.";
+            return RedirectToAction("BusRoutes");
+        }
+
+        public async Task<IActionResult> BusRouteBookings(int routeId)
+        {
+            var vendor = await GetCurrentVendorProfile();
+            var route = await _context.BusRoutes.FirstOrDefaultAsync(r => r.Id == routeId && r.VendorProfileId == vendor!.Id);
+            if (route == null) return NotFound();
+
+            ViewBag.Route = route;
+            var bookings = await _context.BusBookings
+                .Include(b => b.TouristUser)
+                .Where(b => b.BusRouteId == routeId)
+                .OrderBy(b => b.TravelDate)
+                .ToListAsync();
+
+            return View(bookings);
+        }
     }
+
 }

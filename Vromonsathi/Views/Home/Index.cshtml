@@ -146,32 +146,54 @@
         var police = d.Checkpoints.Count(c => c.Type == CheckpointType.Police);
         var bg = string.IsNullOrEmpty(d.ImageUrl) ? "background:linear-gradient(135deg,#1B4332,#0B2B20);" : $"background-image:url('{d.ImageUrl}');";
 
-        <a class="dest-card" asp-controller="Destination" asp-action="Details" asp-route-id="@d.Id">
-          <div class="dest-photo" style="@bg">
-            <span>@d.Division</span>
-          </div>
-          <div class="dest-body">
-            <span class="region">@d.District</span>
-            <h3>@d.Name</h3>
-            <div class="dest-meta">
-              @if (!string.IsNullOrEmpty(d.NearestViewpointName))
-              {
-                <div><span class="k">Nearest viewpoint</span><span class="v">@d.NearestViewpointName</span></div>
-              }
-              @if (d.NearestViewpointDistanceKm != null)
-              {
-                <div><span class="k">Distance</span><span class="v">@d.NearestViewpointDistanceKm km</span></div>
-              }
-              <div><span class="k">Best time</span><span class="v">@d.BestTimeToVisit</span></div>
-            </div>
-            <div class="checkpoint-tags">
-              @if (army > 0) { <span class="cp-tag cp-army"><span class="cp-dot"></span>@army army</span> }
-              @if (bgb > 0) { <span class="cp-tag cp-bgb"><span class="cp-dot"></span>@bgb BGB</span> }
-              @if (police > 0) { <span class="cp-tag cp-police"><span class="cp-dot"></span>@police police</span> }
-              @if (d.RequiresConvoyEscort) { <span class="cp-tag cp-army"><span class="cp-dot"></span>Escort convoy</span> }
-            </div>
-          </div>
-        </a>
+                var exclusiveMap = (Dictionary<int, int>)ViewBag.ExclusiveTourByDestination;
+                var hasExclusive = exclusiveMap.ContainsKey(d.Id);
+                <div class="dest-card" style="position:relative;">
+  @if (hasExclusive)
+  {
+    <span class="badge" style="position:absolute; top:12px; left:12px; z-index:2; background:var(--gold); color:var(--ink); font-weight:700;">★ Exclusive Tour</span>
+  }
+  <a asp-controller="Destination" asp-action="Details" asp-route-id="@d.Id" style="text-decoration:none; color:inherit;">
+    <div class="dest-photo" style="@bg">
+      <span>@d.Division</span>
+    </div>
+    <div class="dest-body">
+      <span class="region">@d.District</span>
+      <h3>@d.Name</h3>
+      <div class="dest-meta">
+        @if (!string.IsNullOrEmpty(d.NearestViewpointName))
+        {
+          <div><span class="k">Nearest viewpoint</span><span class="v">@d.NearestViewpointName</span></div>
+        }
+        @if (d.NearestViewpointDistanceKm != null)
+        {
+          <div><span class="k">Distance</span><span class="v">@d.NearestViewpointDistanceKm km</span></div>
+        }
+        <div><span class="k">Best time</span><span class="v">@d.BestTimeToVisit</span></div>
+      </div>
+      <div class="checkpoint-tags">
+        @if (army > 0) { <span class="cp-tag cp-army"><span class="cp-dot"></span>@army army</span> }
+        @if (bgb > 0) { <span class="cp-tag cp-bgb"><span class="cp-dot"></span>@bgb BGB</span> }
+        @if (police > 0) { <span class="cp-tag cp-police"><span class="cp-dot"></span>@police police</span> }
+        @if (d.RequiresConvoyEscort) { <span class="cp-tag cp-army"><span class="cp-dot"></span>Escort convoy</span> }
+      </div>
+    </div>
+  </a>
+  @if (hasExclusive)
+  {
+    <div style="padding:0 18px 16px;">
+      @if (Context.Session.GetString("Role") == "Tourist")
+      {
+        <a asp-controller="Tourist" asp-action="BookPackage" asp-route-id="@exclusiveMap[d.Id]" class="btn btn-primary" style="width:100%;">Book This Exclusive Tour</a>
+      }
+      else if (Context.Session.GetInt32("UserId") == null)
+      {
+        <a asp-controller="Account" asp-action="Login" class="btn btn-ghost" style="width:100%;">Login to Book</a>
+      }
+    </div>
+  }
+  
+</div>
       }
     </div>
   </div>

@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Vromonsathi.Data;
 
@@ -11,9 +12,11 @@ using Vromonsathi.Data;
 namespace Vromonsathi.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260909074643_AddIsExclusiveToTourPackage")]
+    partial class AddIsExclusiveToTourPackage
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -152,111 +155,6 @@ namespace Vromonsathi.Migrations
                     b.HasIndex("VendorPackageOfferId");
 
                     b.ToTable("BookingAddOns");
-                });
-
-            modelBuilder.Entity("Vromonsathi.Models.BusBooking", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("BusRouteId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("SeatCount")
-                        .HasColumnType("int");
-
-                    b.Property<string>("SeatNumbers")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<decimal>("TotalPrice")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<int>("TouristUserId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("TravelDate")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("BusRouteId");
-
-                    b.HasIndex("TouristUserId");
-
-                    b.ToTable("BusBookings");
-                });
-
-            modelBuilder.Entity("Vromonsathi.Models.BusRoute", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("BusName")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("BusType")
-                        .IsRequired()
-                        .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("DepartureTime")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<string>("DestinationCity")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<int?>("DestinationId")
-                        .HasColumnType("int");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("OriginCity")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<decimal>("PricePerSeat")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<int>("TotalSeats")
-                        .HasColumnType("int");
-
-                    b.Property<int>("VendorProfileId")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("DestinationId");
-
-                    b.HasIndex("VendorProfileId");
-
-                    b.ToTable("BusRoutes");
                 });
 
             modelBuilder.Entity("Vromonsathi.Models.Checkpoint", b =>
@@ -868,43 +766,6 @@ namespace Vromonsathi.Migrations
                     b.Navigation("VendorPackageOffer");
                 });
 
-            modelBuilder.Entity("Vromonsathi.Models.BusBooking", b =>
-                {
-                    b.HasOne("Vromonsathi.Models.BusRoute", "BusRoute")
-                        .WithMany("Bookings")
-                        .HasForeignKey("BusRouteId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("Vromonsathi.Models.User", "TouristUser")
-                        .WithMany()
-                        .HasForeignKey("TouristUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("BusRoute");
-
-                    b.Navigation("TouristUser");
-                });
-
-            modelBuilder.Entity("Vromonsathi.Models.BusRoute", b =>
-                {
-                    b.HasOne("Vromonsathi.Models.Destination", "Destination")
-                        .WithMany()
-                        .HasForeignKey("DestinationId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.HasOne("Vromonsathi.Models.VendorProfile", "VendorProfile")
-                        .WithMany()
-                        .HasForeignKey("VendorProfileId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Destination");
-
-                    b.Navigation("VendorProfile");
-                });
-
             modelBuilder.Entity("Vromonsathi.Models.Checkpoint", b =>
                 {
                     b.HasOne("Vromonsathi.Models.Destination", "Destination")
@@ -1041,11 +902,6 @@ namespace Vromonsathi.Migrations
             modelBuilder.Entity("Vromonsathi.Models.Booking", b =>
                 {
                     b.Navigation("AddOns");
-                });
-
-            modelBuilder.Entity("Vromonsathi.Models.BusRoute", b =>
-                {
-                    b.Navigation("Bookings");
                 });
 
             modelBuilder.Entity("Vromonsathi.Models.Destination", b =>
