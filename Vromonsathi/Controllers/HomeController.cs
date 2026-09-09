@@ -21,10 +21,20 @@ namespace Vromonsathi.Controllers
         public async Task<IActionResult> Index()
         {
             var destinations = await _context.Destinations
-                .Where(d => d.IsApproved)
-                .Include(d => d.Checkpoints)
-                .AsNoTracking()
+    .Where(d => d.IsApproved)
+    .Include(d => d.Checkpoints)
+    .Include(d => d.Listings) // not used directly but keeps EF happy if referenced elsewhere
+    .AsNoTracking()
+    .ToListAsync();
+
+            var destIdsWithPackages = await _context.TourPackages
+                .Where(p => p.IsActive && p.DestinationId != null)
+                .Select(p => new { p.DestinationId, p.Id })
                 .ToListAsync();
+
+            ViewBag.ExclusiveTourByDestination = destIdsWithPackages
+                .GroupBy(x => x.DestinationId!.Value)
+                .ToDictionary(g => g.Key, g => g.First().Id);
 
             var facilities = await _context.Facilities.AsNoTracking().ToListAsync();
 
